@@ -35,7 +35,11 @@ def generate(LM, system_prompt, context, max_tokens=512, temperature=0.5, use_op
             temperature=temperature,
         )
         message = response["choices"][0]["message"]
-        return message
+        role = message["role"]
+        assert role == "assistant"
+        content = message["content"].strip()
+        total_tokens_used = response["usage"]["total_tokens"]
+        return content, total_tokens_used
     else:
         return NotImplementedError
 
@@ -65,12 +69,15 @@ def summarize_simulation(LM, log_output):
 
 if __name__ == "__main__":
     # test generation
-    LM = "gpt-4"
-    system_prompt = "You are Violet, an comic book writer."
-    context = [{"role": "user", "content": "Hello! What's your name?"},
-               {"role": "assistant", "content": "Hi! I'm Violet."},
-               {"role": "user", "content": "Nice to meet you, Violet. I'm John. What do you do for a living?"},
+    LM = "gpt-3.5-turbo-16k"
+    system_prompt = "You are Carson Crimson (he/him), a talented glassblower who owns a small studio in Seattle's Fremont neighborhood. You specialize in creating intricate glass sculptures and jewelry. You are passionate and intense, much like the deep crimson of his favorite color. You're known for his fiery determination and unwavering commitment to his craft. Your mbti is ENTJ and Your star sign is Aries. Your hobbies are competitive rowing, attending glass art workshops."
+    context = [{"role": "user", "content": ''' You are participating in a group speed dating event, with 4 men and 4 women in total. In each round, you have 5 minutes to talk to another woman, including a 2-min introduction and a 3-min free chat. Try to decide how much you like each woman in this process and also make an impression of yourself.
+    
+Now, you are going to meet the first woman, Azealia Azure, a marine biologist who works at a research institute in Port Townsend. She's dedicated to studying the rich marine life of the Puget Sound. She's calm, analytical, and introspective, and embody the tranquility of the azure waters she study. She's a deep thinker and a gentle soul who prefers spending time by the water's edge. Her mbti is INFP and her star sign is Pisces. Her hobbies are playing acoustic guitar, stargazing, writing poetry. 
+
+What do you want to say to Azealia?
+(Say your part in the format of Carson: "{your response}". Don't try to play Azealia.)'''}
                ]
-    response = generate(LM, system_prompt, context)
-    print(response)
+    msg, tokens_used = generate(LM, system_prompt, context)
+    print(msg, tokens_used)
 

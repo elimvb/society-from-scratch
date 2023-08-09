@@ -1,12 +1,13 @@
 {
-    "general": {
-      "global_time_limit": 24,
-      "max_attempts": 2,
-      "memory_limit": 10,
-      "prompt_meta": "### Instruction:\n{}\n### Response:"
-    },
-    "town_areas": {
-      "Speed dating house": "The house for the group speed dating event, with a long table."
-    }
+  "general": {
+    "global_time_limit": 24,
+    "max_attempts": 2,
+    "memory_limit": 10,
+    "temperature": 0.5
+  },
+  "town_areas": {
+    "Speed dating house": "The house for the group speed dating event, with a long table."
+  },
+  "scenario_description": "You are participating in a group speed dating event, with 4 men and 4 women in total. In each round, you have 5 minutes to talk to another candidate, including a 2-min introduction and a 3-min free chat. Try to decide how much you like in this process and also make an impression of your self on others."
 }
   
