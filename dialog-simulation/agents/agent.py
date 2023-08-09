@@ -1,3 +1,4 @@
+import json
 import random
 from utils.text_generation import generate, get_rating
 import networkx as nx
@@ -68,7 +69,7 @@ class Agent:
         self.memory_ratings = []
         self.memories = []
         self.compressed_memories = []
-        self.world_graph = description["world_graph"]
+        self.world_graph = world_graph
 
     def __repr__(self):
         return f"Agent({self.name}, {self.location})"
@@ -120,7 +121,10 @@ class Agent:
         new_response = {"role": "assistant", "content": message}
         self.memories.append(new_response)
 
-        return message, n_tokens_used
+        # parse the message to get the content
+        message_content = message.split(f'{self.first_name}:')[1].strip('" ')
+
+        return message_content, n_tokens_used
 
     def compress_memories(self, global_time, MEMORY_LIMIT=10):
 
@@ -195,3 +199,18 @@ class Agent:
 
         return self.location
 
+if __name__ == "__main__":
+    config_name = "test"
+    config_dir = f'../config/{config_name}'
+    agents_config_frn = f"{config_dir}/agents.json"
+    LM = "gpt-3.5-turbo-16k"
+    with open(agents_config_frn, 'r') as fr:
+        town_people = json.load(fr)
+
+    agent_name, agent_description = list(town_people.items())[0]
+    agent = Agent(LM, agent_name, agent_description, None)
+
+    incoming_message = "Hello, how are you?"
+    partner_name = "Bob"
+    message, n_tokens_used = agent.converse(incoming_message, partner_name)
+    print(message, n_tokens_used)
