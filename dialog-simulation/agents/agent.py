@@ -49,7 +49,7 @@ class Agent:
         Converse with another agent given the conversation context so far.
     """
      
-    def __init__(self, name, description, world_graph, use_openai):
+    def __init__(self, name, description, world_graph):
         self.name = name
         self.profession = description["profession"]
         self.personality = description["personality"]
@@ -66,7 +66,6 @@ class Agent:
         self.memories = []
         self.compressed_memories = []
         self.world_graph = description["world_graph"]
-        self.use_openai = use_openai
 
     def __repr__(self):
         return f"Agent({self.name}, {self.location})"

@@ -1,0 +1,1 @@
+python main.py --config_name default --repeats 1
