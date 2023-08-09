@@ -56,9 +56,8 @@ agents = []
 locations = Locations()
 
 
-for name, description in town_people.items():
-    starting_location = description['starting_location']
-    agents.append(Agent(name, description['description'], starting_location, world_graph, use_openai))
+for agent_name, agent_description in town_people.items():
+    agents.append(Agent(agent_name, agent_description, world_graph, use_openai))
 
 for name, description in town_areas.items():
     locations.add_location(name, description)

@@ -11,97 +11,92 @@ class Agent:
     -----------
     name : str
         The name of the agent.
-    description : str
-        A brief description of the agent.
+    profession : str
+        The profession of the agent.
+    personality : str
+        The personality of the agent.
+    ambitions : str
+        The ambitions of the agent.
+    personality_MBTI : str
+        The MBTI personality type of the agent.
+    star_sign : str
+        The star sign of the agent.
+    income : str
+        The income of the agent.
+    favorite_pnw_hiking_trail : str
+        The favorite Pacific Northwest hiking trail of the agent.
+    hobbies : str
+        The hobbies of the agent.
+    pronouns : str
+        The pronouns of the agent.
     location : str
         The current location of the agent in the simulated environment.
     memories : list
         A list of memories the agent has about their interactions.
     compressed_memories : list
         A list of compressed memories that summarize the agent's experiences.
-    plans : str
-        The agent's daily plans, generated at the beginning of each day.
 
     Methods:
     --------
-    plan(global_time, town_people, prompt_meta):
-        Generates the agent's daily plan.
-    
-    execute_action(other_agents, location, global_time, town_areas, prompt_meta):
-        Executes the agent's action based on their current situation and interactions with other agents.
     
     update_memories(other_agents, global_time, action_results):
         Updates the agent's memories based on their interactions with other agents.
     
     compress_memories(memory_ratings, global_time, MEMORY_LIMIT=10):
         Compresses the agent's memories to a more manageable and relevant set.
-    
-    rate_locations(locations, town_areas, global_time, prompt_meta):
-        Rates different locations in the simulated environment based on the agent's preferences and experiences.
+
+    converse(conversation_context, prompt_meta):
+        Converse with another agent given the conversation context so far.
     """
      
-    def __init__(self, name, description, starting_location, world_graph, use_openai):
+    def __init__(self, name, description, world_graph, use_openai):
         self.name = name
-        self.description = description
-        self.location = starting_location
+        self.profession = description["profession"]
+        self.personality = description["personality"]
+        self.ambitions = description["ambitions"]
+        self.personality_MBTI = description["personality_MBTI"]
+        self.star_sign = description["star_sign"]
+        self.income = description["income"]
+        self.favorite_pnw_hiking_trail = description["favorite_pnw_hiking_trail"]
+        self.hobbies = description["hobbies"]
+        self.pronouns = description["pronouns"]
+        self.location = description["starting_location"]
+        self.identity_prompt = ""
         self.memory_ratings = []
         self.memories = []
         self.compressed_memories = []
-        self.plans = ""
-        self.world_graph = world_graph
+        self.world_graph = description["world_graph"]
         self.use_openai = use_openai
-        
+
     def __repr__(self):
-        return f"Agent({self.name}, {self.description}, {self.location})"
+        return f"Agent({self.name}, {self.location})"
     
-    def plan(self, global_time, prompt_meta):
-        """
-        Generates the agent's daily plan.
+    def initialize_identity(self, prompt_meta):
+        self.identity_prompt = f'''You are {self.name} ({self.pronouns}). 
+        You are a {self.profession}. 
+        You are {self.personality}. Your MBTI is {self.personality_MBTI}.
+        You ambitions are to {self.ambitions}. 
+        You star sign is {self.star_sign}. 
+        You make {self.income} income. 
+        You like to {self.hobbies}. 
+        Your favorite Pacific Northwest hiking trail is {self.favorite_pnw_hiking_trail}.'''
+
+    def converse(self, conversation_context, prompt_meta):
+        """Converse with another agent given the conversation context so far.
         
         Parameters:
         -----------
-        global_time : int
-            The current time in the simulation.
+        conversation_context : str
+            The context of the conversation.
         prompt_meta : str
-            The prompt used to generate the plan.
-        """
-
-        prompt = "You are {}. The following is your description: {} You just woke up. What is your goal for today? Write it down in an hourly basis, starting at {}:00. Write only one or two very short sentences. Be very brief. Use at most 50 words.".format(self.name, self.description, str(global_time))
-        self.plans = generate(prompt_meta.format(prompt), self.use_openai)
-    
-    def execute_action(self, other_agents, location, global_time, town_areas, prompt_meta):
-
-        """Executes the agent's action based on their current situation and interactions with other agents.
+            The prompt used to generate the conversation.
         
-        Parameters:
-        -----------
-        other_agents : list
-            A list of other Agent objects in the simulation.
-        location : Location
-            The current Location object where the agent is located.
-        global_time : int
-            The current time in the simulation.
-        town_areas : dict
-            A dictionary of Location objects representing different areas in the simulated environment.
-        prompt_meta : str
-            The prompt used to generate the action.
-
         Returns:
         --------
-        action : str
-            The action executed by the agent.
+        utterance : str
+            The utterance generated by the agent.
         """
-
-        people = [agent.name for agent in other_agents if agent.location == location]
-        
-        prompt = "You are {}. Your plans are: {}. You are currently in {} with the following description: {}. It is currently {}:00. The following people are in this area: {}. You can interact with them.".format(self.name, self.plans, location.name, town_areas[location.name], str(global_time), ', '.join(people))
-        
-        people_description = [f"{agent.name}: {agent.description}" for agent in other_agents if agent.location == location.name]
-        prompt += ' You know the following about people: ' + '. '.join(people_description)
-        
-        prompt += "What do you do in the next hour? Use at most 10 words to explain."
-        action = generate(prompt_meta.format(prompt), self.use_openai)
-        return action
+        return NotImplementedError
     
     def update_memories(self, other_agents, global_time, action_results):
         
@@ -117,7 +112,6 @@ class Agent:
         action_results : dict
             A dictionary of the results of each agent's action.
         """
-
         for agent in other_agents:
             if agent.location == self.location:
                 self.memories.append('[Time: {}. Person: {}. Memory: {}]\n'.format(str(global_time), agent.name, action_results[agent.name]))
@@ -168,7 +162,7 @@ class Agent:
         memory_ratings = []
         for memory in self.memories:
             prompt = "You are {}. Your plans are: {}. You are currently in {}. It is currently {}:00. You observe the following: {}. Give a rating, between 1 and 5, to how much you care about this.".format(self.name, self.plans, locations.get_location(self.location), str(global_time), memory)
-            res = generate(prompt_meta.format(prompt), self.use_openai)
+            res = generate(prompt_meta.format(prompt))
             rating = get_rating(res)
             max_attempts = 2
             current_attempt = 0
@@ -180,44 +174,6 @@ class Agent:
             memory_ratings.append((memory, rating, res))
         self.memory_ratings = memory_ratings
         return memory_ratings
-
-
-    def rate_locations(self, locations, global_time, prompt_meta):
-
-        """
-        Rates different locations in the simulated environment based on the agent's preferences and experiences.
-        
-        Parameters:
-        -----------
-        locations : Locations
-            The Locations object representing different areas in the simulated environment.
-        global_time : int
-            The current time in the simulation.
-        prompt_meta : str
-            The prompt used to rate the locations.
-
-        Returns:
-        --------
-        place_ratings : list
-            A list of tuples representing the location, its rating, and the generated response.
-
-        """
-
-        place_ratings = []
-        for location in locations.locations.values():
-            prompt = "You are {}. Your plans are: {}. It is currently {}:00. You are currently at {}. How likely are you to go to {} next?".format(self.name, self.plans, str(global_time), locations.get_location(self.location), location.name)
-            res = generate(prompt_meta.format(prompt), self.use_openai)
-            rating = get_rating(res)
-            max_attempts = 2
-            current_attempt = 0
-            while rating is None and current_attempt < max_attempts:
-                rating = get_rating(res)
-                current_attempt += 1
-            if rating is None:
-                rating = 0
-            place_ratings.append((location.name, rating, res))
-        self.place_ratings = place_ratings
-        return sorted(place_ratings, key=lambda x: x[1], reverse=True)
     
     def move(self, new_location_name):
 
