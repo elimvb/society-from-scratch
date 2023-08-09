@@ -1,0 +1,12 @@
+{
+    "general": {
+      "global_time_limit": 24,
+      "max_attempts": 2,
+      "memory_limit": 10,
+      "prompt_meta": "### Instruction:\n{}\n### Response:"
+    },
+    "town_areas": {
+      "Speed dating house": "The house for the group speed dating event, with a long table."
+    }
+}
+  

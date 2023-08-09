@@ -29,11 +29,14 @@ use_openai=True
 whole_simulation_output = ""
 
 # Load town areas and people from JSON file
-with open('simulation_config.json', 'r') as f:
-    town_data = json.load(f)
-
-town_people = town_data['town_people']
-town_areas = town_data['town_areas']
+config_dir = 'config'
+general_config_frn = f"{config_dir}/general.json"
+with open(general_config_frn, 'r') as fr:
+    general_config = json.load(fr)
+    town_areas = general_config['town_areas']
+agents_config_frn = f"{config_dir}/agents.json"
+with open(agents_config_frn, 'r') as fr:
+    town_people = json.load(fr)
 
 # Create world_graph
 world_graph = nx.Graph()
@@ -72,7 +75,7 @@ for repeat in range(repeats):
         if print_locations:
             print(f"=== LOCATIONS AT START OF REPEAT {repeat} ===")
             print(str(locations) + "\n")
-    
+
     # Plan actions for each agent
     for agent in agents:
         agent.plan(global_time, prompt_meta)
@@ -80,7 +83,7 @@ for repeat in range(repeats):
             log_output += f"{agent.name} plans: {agent.plans}\n"
             if print_plans:
                 print(f"{agent.name} plans: {agent.plans}")
-    
+
     # Execute planned actions and update memories
     for agent in agents:
         # Execute action
@@ -118,7 +121,7 @@ for repeat in range(repeats):
             if print_ratings:
                 print(f"=== UPDATED LOCATION RATINGS {global_time} FOR {agent.name}===\n")
                 print(f"{agent.name} location ratings: {place_ratings}\n")
-        
+
         old_location = agent.location
 
         new_location_name = place_ratings[0][0]
