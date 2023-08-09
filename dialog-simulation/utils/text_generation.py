@@ -2,13 +2,14 @@ import openai
 import re
 import os
 from dotenv import load_dotenv
-from transformers import pipeline
+# from transformers import pipeline
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Get OpenAI API key from environment variables
 openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.organization = os.getenv("OPENAI_ORGANIZATION")
 
 
 
@@ -24,7 +25,7 @@ def generate(prompt, use_openai=True):
     - str: The generated text completion.
     """
     if use_openai:
-        model_engine = "text-davinci-002"
+        model_engine = "text-davinci-003"
         response = openai.Completion.create(
             engine=model_engine,
             prompt=prompt,
@@ -37,15 +38,15 @@ def generate(prompt, use_openai=True):
         message = response.choices[0].text
         return message.strip()
 
-    else:
-        hf_generator = pipeline('text-generation', model='EleutherAI/gpt-neo-1.3B', device=0)
-        output = hf_generator(prompt, max_length=len(prompt)+128, do_sample=True)
-        out = output[0]['generated_text']
-        if '### Response:' in out:
-            out = out.split('### Response:')[1]
-        if '### Instruction:' in out:
-            out = out.split('### Instruction:')[0]
-        return out.strip()
+    # else:
+    #     hf_generator = pipeline('text-generation', model='EleutherAI/gpt-neo-1.3B', device=0)
+    #     output = hf_generator(prompt, max_length=len(prompt)+128, do_sample=True)
+    #     out = output[0]['generated_text']
+    #     if '### Response:' in out:
+    #         out = out.split('### Response:')[1]
+    #     if '### Instruction:' in out:
+    #         out = out.split('### Instruction:')[0]
+    #     return out.strip()
 
 
 def get_rating(x):
