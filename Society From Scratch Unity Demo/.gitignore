@@ -57,8 +57,3 @@ sysinfo.txt
 
 # Crashlytics generated file
 crashlytics-build.properties
-
-# Ignoring all asset packs for now, this wont work long term
-/[Aa]ssets/[Aa]sset Packs/
-
-/[Aa]ssets/Photos/
