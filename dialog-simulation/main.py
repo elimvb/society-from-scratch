@@ -29,10 +29,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run a dialog simulation.')
     parser.add_argument('--config_name', type=str, default='default', help='The descriptive name of the simulation configuration, e.g. "speed_date". It should have a corresponding folder under "config/".')
     parser.add_argument('--repeats', type=int, default=1, help='The number of times to repeat the simulation.')
+    parser.add_argument('--LM', type=str, default='gpt4', help='The language model to use for text generation.')
 
     args = parser.parse_args()
     config_name = args.config_name
     repeats = args.repeats
+    LM = args.LM
 
     # Start simulation loop
     whole_simulation_output = ""
