@@ -11,3 +11,9 @@ def id_to_ordinal(id):
 	else:
 		raise ValueError(f"Invalid id: {id}")
 
+
+def log_and_print(log_fw, message):
+	"""Prints a message and also writes it to a log file."""
+	print(message)
+	log_fw.write(message + "\n")
+	log_fw.flush()

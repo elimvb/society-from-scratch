@@ -2,8 +2,7 @@ import json
 import jsonlines
 import os
 from agents.agent import Agent
-from utils.text_generation import summarize_simulation
-from utils.utils import id_to_ordinal
+from utils.utils import id_to_ordinal, log_and_print
 import argparse
 import random
 import pandas as pd
@@ -38,7 +37,7 @@ if __name__ == "__main__":
     male_agents = []
     female_agents = []
     agents = []
-    log_dir = f'logs/{config_name}'
+    log_dir = f'logs/{config_name}_{LM}'
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     simulation_log = open(f'{log_dir}/simulation_log.txt', 'w')
@@ -63,9 +62,7 @@ if __name__ == "__main__":
     # Start simulation loop
     for repeat in range(repeats):
         repeat_str = f"====================== REPEAT {repeat} ======================\n"
-        print(repeat_str)
-        simulation_log.write(repeat_str)
-        simulation_log.flush()
+        log_and_print(simulation_log, repeat_str)
 
         # Introduce the scenario
         liking_score_dict = {} # liking_score_dict[agent1_name][agent2_name] = how much agent1 likes agent2 (on a scale of 0 to 100)
@@ -77,13 +74,13 @@ if __name__ == "__main__":
         # Being the rotations
         for iteration in range(n_agents_each_side): # A new iteration with 4 new pairings
             iteration_str = f"----------------------- ITERATION {iteration} -----------------------\n"
-            print(iteration_str)
-            simulation_log.write(iteration_str)
+            log_and_print(simulation_log, iteration_str)
 
             iteration_ordinal = id_to_ordinal(iteration)
 
             # each pair of male and female agents has a conversation
             for male_agent, female_agent in zip(male_agents, female_agents):
+                log_and_print(simulation_log, f"\nPaired agents: {male_agent.name}, {female_agent.name}\n")
                 paired_agents = (male_agent, female_agent)
 
                 for agent in paired_agents:
@@ -121,17 +118,18 @@ if __name__ == "__main__":
                                                                 max_tokens=int(max_tokens_each_msg * 1.5),
                                                                 temperature=temperature)
 
+                    # log the conversation
+                    log_and_print(simulation_log, f"{first_agent.name}: {first_agent_msg}\n")
+                    log_and_print(simulation_log, f"{second_agent.name}: {second_agent_msg}\n")
+
                 # get the score for the current pair
                 first_agent_score = first_agent.get_liking_score(second_agent.first_name)
                 second_agent_score = second_agent.get_liking_score(first_agent.first_name)
                 # log the score
                 first_agent_score_str = f"{first_agent.name}'s liking score for {second_agent.name}: {first_agent_score}\n"
-                simulation_log.write(first_agent_score_str)
-                print(first_agent_score_str)
                 second_agent_score_str = f"{second_agent.name}'s liking score for {first_agent.name}: {second_agent_score}\n"
-                simulation_log.write(second_agent_score_str)
-                print(second_agent_score_str)
-                simulation_log.flush()
+                log_and_print(simulation_log, first_agent_score_str)
+                log_and_print(simulation_log, second_agent_score_str)
 
                 liking_score_dict[first_agent.name][second_agent.name] = first_agent_score
                 liking_score_dict[second_agent.name][first_agent.name] = second_agent_score
@@ -140,10 +138,11 @@ if __name__ == "__main__":
             male_agents = male_agents[-1:] + male_agents[:-1]
 
         # print the liking scores as pandas dataframe
-        liking_score_df = pd.DataFrame(liking_score_dict)
-        print(liking_score_df)
 
-        print(f"----------------------- SUMMARY FOR REPEAT {repeat} -----------------------")
+        liking_score_df = pd.DataFrame(liking_score_dict)
+        log_and_print(simulation_log, "Final liking scores:" + str(liking_score_df))
+
+        log_and_print(simulation_log, f"----------------------- SUMMARY FOR REPEAT {repeat} -----------------------")
 
     # close log files
     simulation_log.close()
