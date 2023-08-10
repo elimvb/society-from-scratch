@@ -104,7 +104,7 @@ if __name__ == "__main__":
                 # the current pair talks for a number of turns
                 for turn in range(max_turns):
                     instruction_prompt = 'What do you want to say to {}?\n(Say your part in the format of \'{}: "[your response]"\'. Don\'t try to play {}. {} words max!)'
-                    if turn == max_turns: # last turn
+                    if turn == max_turns-1: # last turn
                         instruction_prompt += '\n(Note that you only have 1 min left to talk to the current candidate!)'
 
                     first_agent_instruction_prompt = instruction_prompt.format(second_agent.first_name, first_agent.first_name, second_agent.first_name, max_tokens_each_msg)
