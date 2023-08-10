@@ -1,9 +1,12 @@
 import json
+import jsonlines
 import os
 from agents.agent import Agent
 from utils.text_generation import summarize_simulation
+from utils.utils import id_to_ordinal
 import argparse
 import random
+import pandas as pd
 
 if __name__ == "__main__":
 
@@ -26,6 +29,7 @@ if __name__ == "__main__":
         temperature = general_config['temperature']
         scenario_description = general_config['scenario_description']
         max_turns = general_config['max_turns_each_iteration']
+        max_tokens_each_msg = general_config['max_tokens_each_message']
     agents_config_frn = f"{config_dir}/agents.json"
     with open(agents_config_frn, 'r') as fr:
         town_people = json.load(fr)
@@ -38,7 +42,6 @@ if __name__ == "__main__":
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     simulation_log = open(f'{log_dir}/simulation_log.txt', 'w')
-    agent_logs = {}
     for agent_name, agent_description in town_people.items():
         new_agent = Agent(LM, agent_name, agent_description)
         agents.append(new_agent)
@@ -48,7 +51,7 @@ if __name__ == "__main__":
             male_agents.append(new_agent)
         else:
             raise ValueError(f"Unknown gender: {new_agent.gender}")
-        agent_logs[agent_name] = open(f'{log_dir}/{agent_name}_log.json', 'w')
+        new_agent.memory_log = jsonlines.Writer(open(f'{log_dir}/{agent_name}_log.jsonl', 'w'), flush=True)
 
     assert len(male_agents) == len(female_agents)
     n_agents_each_side = len(female_agents)
@@ -64,38 +67,86 @@ if __name__ == "__main__":
         simulation_log.write(repeat_str)
         simulation_log.flush()
 
-        for iteration in range(n_agents_each_side): # A new iteration with new pairings
+        # Introduce the scenario
+        liking_score_dict = {} # liking_score_dict[agent1_name][agent2_name] = how much agent1 likes agent2 (on a scale of 0 to 100)
+        for agent in agents:
+            scenario_description_prompt = scenario_description.replace("[OPPOSITE_GENDER]", agent.opposite_gender)
+            agent.add_to_memory({"role": "user", "content": scenario_description_prompt})
+            liking_score_dict[agent.name] = {}
+
+        # Being the rotations
+        for iteration in range(n_agents_each_side): # A new iteration with 4 new pairings
             iteration_str = f"----------------------- ITERATION {iteration} -----------------------\n"
             print(iteration_str)
             simulation_log.write(iteration_str)
 
-            for male_agent, female_agent in zip(male_agents, female_agents):
-                # each pair of male and female agents has a conversation
-                paired_agents = [male_agent, female_agent]
+            iteration_ordinal = id_to_ordinal(iteration)
 
-                # randomly choose a startng agent
+            # each pair of male and female agents has a conversation
+            for male_agent, female_agent in zip(male_agents, female_agents):
+                paired_agents = (male_agent, female_agent)
+
+                for agent in paired_agents:
+                    partner_agent = paired_agents[1-paired_agents.index(agent)]
+                    partner_name = partner_agent.name
+                    partner_profession = partner_agent.profession
+                    new_pairing_prompt = f"Now, you are going to meet the {iteration_ordinal} {agent.opposite_gender}, {partner_name}, {partner_profession}."
+                    new_memory = {"role": "user", "content": new_pairing_prompt}
+                    agent.add_to_memory(new_memory)
+
+                # randomly choose a starting agent
                 start_idx = random.choice([0,1])
                 first_agent = paired_agents[start_idx]
                 second_agent = paired_agents[1-start_idx]
 
-                first_agent_initial_msg = scenario_description.replace("[OPPOSITE_GENDER]", first_agent.opposite_gender)
-                second_agent_initial_msg = scenario_description.replace("[OPPOSITE_GENDER]", second_agent.opposite_gender)
+                first_agent_msg, second_agent_msg = None, None
 
+                # the current pair talks for a number of turns
                 for turn in range(max_turns):
-                    first_agent.converse(incoming_message, partner_name, instructions, max_tokens=512, temperature=0.5)
+                    instruction_prompt = 'What do you want to say to {}?\n(Say your part in the format of \'{}: "[your response]"\'. Don\'t try to play {}. {} words max!)'
+                    if turn == max_turns: # last turn
+                        instruction_prompt += '\n(Note that you only have 1 min left to talk to the current candidate!)'
 
+                    first_agent_instruction_prompt = instruction_prompt.format(second_agent.first_name, first_agent.first_name, second_agent.first_name, max_tokens_each_msg)
+                    first_agent_msg, _ = first_agent.converse(incoming_message=second_agent_msg,
+                                                              partner_name=second_agent.first_name,
+                                                              instructions=first_agent_instruction_prompt,
+                                                              max_tokens=int(max_tokens_each_msg * 1.5),
+                                                              temperature=temperature)
 
+                    second_agent_instruction_prompt = instruction_prompt.format(first_agent.first_name, second_agent.first_name, first_agent.first_name, max_tokens_each_msg)
+                    second_agent_msg, _ = second_agent.converse(incoming_message=first_agent_msg,
+                                                                partner_name=first_agent.first_name,
+                                                                instructions=second_agent_instruction_prompt,
+                                                                max_tokens=int(max_tokens_each_msg * 1.5),
+                                                                temperature=temperature)
 
+                # get the score for the current pair
+                first_agent_score = first_agent.get_liking_score(second_agent.first_name)
+                second_agent_score = second_agent.get_liking_score(first_agent.first_name)
+                # log the score
+                first_agent_score_str = f"{first_agent.name}'s liking score for {second_agent.name}: {first_agent_score}\n"
+                simulation_log.write(first_agent_score_str)
+                print(first_agent_score_str)
+                second_agent_score_str = f"{second_agent.name}'s liking score for {first_agent.name}: {second_agent_score}\n"
+                simulation_log.write(second_agent_score_str)
+                print(second_agent_score_str)
+                simulation_log.flush()
 
+                liking_score_dict[first_agent.name][second_agent.name] = first_agent_score
+                liking_score_dict[second_agent.name][first_agent.name] = second_agent_score
 
             # shift male_agents by one position to their right
             male_agents = male_agents[-1:] + male_agents[:-1]
 
-        print(f"----------------------- SUMMARY FOR REPEAT {repeat} -----------------------")
+        # print the liking scores as pandas dataframe
+        liking_score_df = pd.DataFrame(liking_score_dict)
+        print(liking_score_df)
 
+        print(f"----------------------- SUMMARY FOR REPEAT {repeat} -----------------------")
 
     # close log files
     simulation_log.close()
     for agent in agents:
-        agent_logs[agent.name].close()
+        agent.memory_log.close()
 

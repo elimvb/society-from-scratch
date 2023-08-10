@@ -1,0 +1,11 @@
+====================== REPEAT 0 ======================
+----------------------- ITERATION 0 -----------------------
+Indie Indigo's liking score for Sam Slate: 80.0
+Sam Slate's liking score for Indie Indigo: 85.0
+Ashley Amber's liking score for Cora Coral: 90.0
+Cora Coral's liking score for Ashley Amber: 85.0
+----------------------- ITERATION 1 -----------------------
+Indie Indigo's liking score for Ashley Amber: 90.0
+Ashley Amber's liking score for Indie Indigo: 80.0
+Cora Coral's liking score for Sam Slate: 90.0
+Sam Slate's liking score for Cora Coral: 90.0

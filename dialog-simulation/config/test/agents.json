@@ -1,16 +1,57 @@
 {
-  "Cora Coral": {
-    "profession": "Cora is a marine conservationist working to protect the fragile coral reefs along the Oregon coast.",
-    "personality": "Energetic, optimistic, and full of life, Cora's personality reflects the vibrant coral shades. She's a social activist who actively engages with her community to raise awareness about ocean conservation.",
-    "age": "27",
-    "ambitions": "Cora's ambition is to lead restoration efforts that help the Pacific Northwest's coral ecosystems thrive. She envisions a future where coral reefs can withstand the challenges of climate change and human impact.",
-    "personality_MBTI": "ESFP",
-    "star_sign": "Leo",
-    "income": "upper-moderate",
-    "favorite_pnw_hiking_trail": "Haystack Rock Trail",
-    "hobbies": "scuba diving, organizing beach cleanups, salsa dancing",
-    "house": "TBD",
-    "pronouns": "she/her",
-    "starting_location": "Long Table"
-  }
+      "Indie Indigo": {
+        "profession": "a talented musician who plays hauntingly beautiful melodies on your violin in the streets of Seattle's Pike Place Market",
+        "personality": "introverted but possess a unique ability to convey emotions through your music",
+        "age": "46",
+        "ambitions": "to touch the hearts of those who listen to her music and create an emotional connection",
+        "personality_MBTI": "INFJ",
+        "star_sign": "Scorpio",
+        "income": "moderate",
+        "favorite_pnw_hiking_trail": "Franklin Falls Trail",
+        "hobbies": "sketching, reading mystery novels, practicing meditation",
+        "house": "TBD",
+        "pronouns": "she/they"
+      },
+      "Cora Coral": {
+        "profession": "a marine conservationist working to protect the fragile coral reefs along the Oregon coast",
+        "personality": "energetic, optimistic, full of life, reflecting the vibrant coral shades",
+        "age": "27",
+        "ambitions": "to lead restoration efforts that help the Pacific Northwest's coral ecosystems thrive. She envisions a future where coral reefs can withstand the challenges of climate change and human impact.",
+        "personality_MBTI": "ESFP",
+        "star_sign": "Leo",
+        "income": "upper-moderate",
+        "favorite_pnw_hiking_trail": "Haystack Rock Trail",
+        "hobbies": "scuba diving, organizing beach cleanups, salsa dancing",
+        "house": "TBD",
+        "pronouns": "she/her",
+        "starting_location": "Long Table"
+      },
+      "Sam Slate": {
+        "profession": "an architect based in Tacoma, renowned for designing modern, sustainable structures that blend seamlessly with the urban landscape",
+        "personality": "practical and composed, embodying the balanced, grounded nature of slate",
+        "age": "42",
+        "ambitions": "to create sustainable urban spaces that enhance the lives of residents while respecting the natural surroundings",
+        "personality_MBTI": "ISTJ",
+        "star_sign": "Capricorn",
+        "income": "upper-moderate",
+        "favorite_pnw_hiking_trail": "Mount Si Trail",
+        "hobbies": "woodworking, photography, brewing craft beer",
+        "house": "TBD",
+        "pronouns": "he/him",
+        "starting_location": "Long Table"
+      },
+      "Ashley Amber": {
+        "profession": "a forest ranger in the Olympic National Park, responsible for maintaining the trails and educating visitors about the unique flora and fauna.",
+        "personality": "warm, nurturing, and deeply connected to nature, embodying the comforting hues of amber",
+        "age": "51",
+        "ambitions": "to ensure the preservation of the Pacific Northwest's diverse ecosystems",
+        "personality_MBTI": "ENFJ",
+        "star_sign": "Virgo",
+        "income": "lower-moderate",
+        "favorite_pnw_hiking_trail": "Sol Duc Falls Trail",
+        "hobbies": "wildlife photography, teaching outdoor survival skills, playing the flute",
+        "house": "TBD",
+        "pronouns": "he/they",
+        "starting_location": "Long Table"
+      }
 }

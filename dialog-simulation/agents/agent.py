@@ -70,16 +70,15 @@ class Agent:
         elif "he/" in self.pronouns:
             self.gender = "man"
             self.opposite_gender = "woman"
-
-        self.location = description["starting_location"]
         self.identity_prompt = self.initialize_identity()
         self.memory_ratings = []
         self.memories = []
         self.memory_token_limit = LM_MAX_TOKENS_DICT[self.LM]
         self.compressed_memories = []
+        self.memory_log = None
 
     def __repr__(self):
-        return f"Agent({self.name}, {self.location})"
+        return f"Agent({self.name} ({self.pronouns}))"
     
     def initialize_identity(self):
         identity = f'''You are {self.name} ({self.pronouns}). 
@@ -115,12 +114,14 @@ class Agent:
         n_tokens_used : int
             The total number of tokens used in the agent's entire memory. Should not exceed self.memory_token_limit.
         """
-        new_memory_content = f'''{partner_name}: "{incoming_message}"
-        {instructions}'''
+        if partner_name is None or incoming_message is None: # there's no other agent to converse with; just follow the instructions
+            new_memory_content = instructions
+        else:
+            new_memory_content = f'''{partner_name}: "{incoming_message}"\n{instructions}'''
 
         new_memory = {"role": "user", "content": new_memory_content}
 
-        self.memories.append(new_memory)
+        self.add_to_memory(new_memory)
 
         message, n_tokens_used = generate(self.LM,
                                           system_prompt=self.identity_prompt,
@@ -130,12 +131,49 @@ class Agent:
                                           use_openai=True)
 
         new_response = {"role": "assistant", "content": message}
-        self.memories.append(new_response)
+        self.add_to_memory(new_response)
 
         # parse the message to get the content
-        message_content = message.split(f'{self.first_name}:')[1].strip('" ')
+        if self.first_name in message:
+            message_content = message.split(f'{self.first_name}:')[1].strip('" ')
+        else:
+            message_content = message.strip('" ')
 
         return message_content, n_tokens_used
+
+    def get_liking_score(self, partner_name):
+            """
+            Gets the agent's liking score for a given partner.
+
+            Parameters:
+            -----------
+            partner_name : str
+                The name of the partner agent.
+
+            Returns:
+            --------
+            liking_score : float
+                The agent's liking score for the partner.
+            """
+
+            prompt = f"Now it's the end of your chat with {partner_name}. How much do you like this person (on a scale of 0 to 100)? Please answer in the format of \"Score: [your_score]\nExplanation: [your_thoughts]\". 50 tokens max."
+            message, _ = self.converse(None, None, prompt, max_tokens=50)
+            assert "Score: " in message
+            liking_score = float(message.split("Score: ")[1].split("\n")[0])
+            return liking_score
+
+    def add_to_memory(self, new_memory):
+
+        """
+        Adds a new memory to the agent's memories.
+
+        Parameters:
+        -----------
+        new_memory : dict
+            A dictionary containing the new memory, with keys "role" and "content".
+        """
+        self.memories.append(new_memory)
+        self.memory_log.write(new_memory)
 
     def compress_memories(self, global_time, MEMORY_LIMIT=10):
 
