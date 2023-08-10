@@ -6,6 +6,11 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+LM_MAX_TOKENS_DICT = {
+    "gpt-3.5-turbo-16k": 16384,
+    "gpt-4": 8192
+}
+
 # Get OpenAI API key from environment variables
 openai.api_key = os.getenv("OPENAI_API_KEY")
 openai.organization = os.getenv("OPENAI_ORGANIZATION")
