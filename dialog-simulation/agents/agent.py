@@ -58,6 +58,7 @@ class Agent:
         self.profession = description["profession"]
         self.personality = description["personality"]
         self.ambitions = description["ambitions"]
+        self.age = description["age"]
         self.personality_MBTI = description["personality_MBTI"]
         self.star_sign = description["star_sign"]
         self.income = description["income"]
@@ -82,6 +83,7 @@ class Agent:
     
     def initialize_identity(self):
         identity = f'''You are {self.name} ({self.pronouns}). 
+        You are {self.age} years old. 
         You are {self.profession}. 
         You are {self.personality}. Your MBTI is {self.personality_MBTI}.
         You ambitions are to {self.ambitions}. 
