@@ -100,7 +100,7 @@ if __name__ == "__main__":
 
                 # the current pair talks for a number of turns
                 for turn in range(max_turns):
-                    instruction_prompt = 'What do you want to say to {}?\n(Say your part in the format of \'{}: "[your response]"\'. Don\'t try to play {}. {} words max!)'
+                    instruction_prompt = 'What do you want to say to {}?\n(Note: 1. Say your part in the format of \'{}: "[your response]"\'.\n 2. Don\'t try to play {}.\n 3. Try to be casual and reflect your own personality, and you don\'t always have to be nice to everyone. \n 4. {} words max!)'
                     if turn == max_turns-1: # last turn
                         instruction_prompt += '\n(Note that you only have 1 min left to talk to the current candidate!)'
 
