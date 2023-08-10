@@ -65,6 +65,7 @@ class Agent:
         self.favorite_pnw_hiking_trail = description["favorite_pnw_hiking_trail"]
         self.hobbies = description["hobbies"]
         self.pronouns = description["pronouns"]
+        self.things_hated = description["things_hated"]
         if "she/" in self.pronouns:
             self.gender = "woman"
             self.opposite_gender = "man"
@@ -86,11 +87,13 @@ class Agent:
         You are {self.age} years old. 
         You are {self.profession}. 
         You are {self.personality}. Your MBTI is {self.personality_MBTI}.
-        You ambitions are to {self.ambitions}. 
+        Your ambitions are to {self.ambitions}. 
         You star sign is {self.star_sign}. 
         You make {self.income} income. 
         You like to {self.hobbies}. 
-        Your favorite Pacific Northwest hiking trail is {self.favorite_pnw_hiking_trail}.'''
+        Your favorite Pacific Northwest hiking trail is {self.favorite_pnw_hiking_trail}.
+        You hate {self.things_hated}.
+        '''
         return identity
 
     def converse(self, incoming_message, partner_name, instructions, max_tokens=512, temperature=0.5):
@@ -143,7 +146,7 @@ class Agent:
 
         return message_content, n_tokens_used
 
-    def get_liking_score(self, partner_name):
+    def get_liking_score_and_explanation(self, partner_name):
             """
             Gets the agent's liking score for a given partner.
 
@@ -153,16 +156,18 @@ class Agent:
                 The name of the partner agent.
 
             Returns:
-            --------
+            --------ß
             liking_score : float
                 The agent's liking score for the partner.
+            explanation : str
             """
 
             prompt = f"Now it's the end of your chat with {partner_name}. How much do you like this person (on a scale of 0 to 100)? Please answer in the format of \"Score: [your_score]\nExplanation: [your_thoughts]\". 50 tokens max."
-            message, _ = self.converse(None, None, prompt, max_tokens=50)
+            message, _ = self.converse(None, None, prompt, max_tokens=50*2)
             assert "Score: " in message
-            liking_score = float(message.split("Score: ")[1].split("\n")[0])
-            return liking_score
+            score, explanation = message.split("Explanation: ")
+            liking_score = float(score.split("\n")[0].split("Score: ")[1])
+            return liking_score, explanation
 
     def add_to_memory(self, new_memory):
 

@@ -51,13 +51,10 @@ if __name__ == "__main__":
         else:
             raise ValueError(f"Unknown gender: {new_agent.gender}")
         new_agent.memory_log = jsonlines.Writer(open(f'{log_dir}/{agent_name}_log.jsonl', 'w'), flush=True)
+        log_and_print(simulation_log, f"{agent_name}:\n {new_agent.identity_prompt}\n\n")
 
     assert len(male_agents) == len(female_agents)
     n_agents_each_side = len(female_agents)
-    # print("Female agents:")
-    # print(female_agents)
-    # print("Male agents:")
-    # print(male_agents)
 
     # Start simulation loop
     for repeat in range(repeats):
@@ -87,7 +84,8 @@ if __name__ == "__main__":
                     partner_agent = paired_agents[1-paired_agents.index(agent)]
                     partner_name = partner_agent.name
                     partner_profession = partner_agent.profession
-                    new_pairing_prompt = f"Now, you are going to meet the {iteration_ordinal} {agent.opposite_gender}, {partner_name}, {partner_profession}."
+                    partner_age = partner_agent.age
+                    new_pairing_prompt = f"Now, you are going to meet the {iteration_ordinal} {agent.opposite_gender}, {partner_name} ({partner_age} years old), {partner_profession}. "
                     new_memory = {"role": "user", "content": new_pairing_prompt}
                     agent.add_to_memory(new_memory)
 
@@ -100,18 +98,21 @@ if __name__ == "__main__":
 
                 # the current pair talks for a number of turns
                 for turn in range(max_turns):
-                    instruction_prompt = 'What do you want to say to {}?\n(Note: 1. Say your part in the format of \'{}: "[your response]"\'.\n 2. Don\'t try to play {}.\n 3. Try to be casual and reflect your own personality, and you don\'t always have to be nice to everyone. \n 4. {} words max!)'
-                    if turn == max_turns-1: # last turn
-                        instruction_prompt += '\n(Note that you only have 1 min left to talk to the current candidate!)'
+                    if turn == 0: # first turn
+                        instruction_prompt = 'What do you want to say to {}?\n(Note: 1. Say your part in the format of \'{}: "[your response]"\'.\n 2. Don\'t try to play {}.\n 3. Try to be casual, funny, dramatic, and not too formal. 4. Remember to stick to your own personality. You don\'t always have to be nice to everyone. \n 5. Don\'t always try to talk about work and collaboration. You can talk about hobbies, income, personality, ambititions, etc. Be creative!. 6. Your opening should be {} words max!)'
+                    elif turn == max_turns-1: # last turn
+                        instruction_prompt = '\n(Note that you only have 1 min left to talk to the current candidate!)'
+                    else:
+                        instruction_prompt = f"\n(Your reponse should be {max_tokens_each_msg} words max!)"
 
-                    first_agent_instruction_prompt = instruction_prompt.format(second_agent.first_name, first_agent.first_name, second_agent.first_name, max_tokens_each_msg)
+                    first_agent_instruction_prompt = instruction_prompt.format(second_agent.first_name, first_agent.first_name, second_agent.first_name, max_tokens_each_msg*0.5)
                     first_agent_msg, _ = first_agent.converse(incoming_message=second_agent_msg,
                                                               partner_name=second_agent.first_name,
                                                               instructions=first_agent_instruction_prompt,
                                                               max_tokens=int(max_tokens_each_msg * 1.5),
                                                               temperature=temperature)
 
-                    second_agent_instruction_prompt = instruction_prompt.format(first_agent.first_name, second_agent.first_name, first_agent.first_name, max_tokens_each_msg)
+                    second_agent_instruction_prompt = instruction_prompt.format(first_agent.first_name, second_agent.first_name, first_agent.first_name, max_tokens_each_msg*0.5)
                     second_agent_msg, _ = second_agent.converse(incoming_message=first_agent_msg,
                                                                 partner_name=first_agent.first_name,
                                                                 instructions=second_agent_instruction_prompt,
@@ -123,11 +124,11 @@ if __name__ == "__main__":
                     log_and_print(simulation_log, f"{second_agent.name}: {second_agent_msg}\n")
 
                 # get the score for the current pair
-                first_agent_score = first_agent.get_liking_score(second_agent.first_name)
-                second_agent_score = second_agent.get_liking_score(first_agent.first_name)
+                first_agent_score, first_agent_expl = first_agent.get_liking_score_and_explanation(second_agent.first_name)
+                second_agent_score, second_agent_expl = second_agent.get_liking_score_and_explanation(first_agent.first_name)
                 # log the score
-                first_agent_score_str = f"{first_agent.name}'s liking score for {second_agent.name}: {first_agent_score}\n"
-                second_agent_score_str = f"{second_agent.name}'s liking score for {first_agent.name}: {second_agent_score}\n"
+                first_agent_score_str = f"{first_agent.name}'s liking score for {second_agent.name}: {first_agent_score}\nExplanation: {first_agent_expl}\n"
+                second_agent_score_str = f"{second_agent.name}'s liking score for {first_agent.name}: {second_agent_score}\nExplanation: {second_agent_expl}\n"
                 log_and_print(simulation_log, first_agent_score_str)
                 log_and_print(simulation_log, second_agent_score_str)
 
@@ -140,9 +141,11 @@ if __name__ == "__main__":
         # print the liking scores as pandas dataframe
 
         liking_score_df = pd.DataFrame(liking_score_dict)
-        log_and_print(simulation_log, "Final liking scores:" + str(liking_score_df))
 
-        log_and_print(simulation_log, f"----------------------- SUMMARY FOR REPEAT {repeat} -----------------------")
+        # save the liking scores to a file
+        liking_score_df.to_csv(f"{log_dir}/liking_scores_{repeat}.csv")
+
+        log_and_print(simulation_log, f"----------------------- END OF REPEAT {repeat} -----------------------")
 
     # close log files
     simulation_log.close()
