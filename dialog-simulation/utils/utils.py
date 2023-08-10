@@ -13,7 +13,12 @@ def id_to_ordinal(id):
 	
 
 # def convert_rankings_to_preferences(liking_score_dict): 
-# 	""""""
+# 	"""Converts the rankings outputted from simulation into proper preferences format for stable matching algorithm."""
+# 	men_pref = {}
+# 	women_pref = {}
+# 	for 
+
+# 	return men_pref, women_pref
 
 
 def log_and_print(log_fw, message):
