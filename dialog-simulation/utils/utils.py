@@ -10,6 +10,10 @@ def id_to_ordinal(id):
 		return "final"
 	else:
 		raise ValueError(f"Invalid id: {id}")
+	
+
+# def convert_rankings_to_preferences(liking_score_dict): 
+# 	""""""
 
 
 def log_and_print(log_fw, message):
