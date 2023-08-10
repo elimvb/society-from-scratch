@@ -72,6 +72,22 @@ def summarize_simulation(LM, log_output):
     return response
 
 
+def _apply_template(self, template: str, example: dict):
+    '''Apply the template to a new example.
+	@:param template (str): the template to be applied to the example.
+	@:param example (str): the example to be converted into the template format.
+
+	@:return (str): the example converted into the template format.
+	'''
+    # for every [{FIELD}] in the template, replace it with the corresponding value of the key "{field}" in the example dict
+    example_in_template = template
+    for field in re.findall(r"\[.*?\]", template):
+        field_name = field[1:-1]
+        field_name = field_name.lower()
+        if field_name in example:
+            example_in_template = example_in_template.replace(field, str(example[field_name]))
+    return example_in_template
+
 if __name__ == "__main__":
     # test generation
     LM = "gpt-3.5-turbo-16k"

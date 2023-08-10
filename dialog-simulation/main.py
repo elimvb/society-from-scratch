@@ -1,159 +1,101 @@
 import json
-import networkx as nx
+import os
 from agents.agent import Agent
-from locations.locations import Locations
 from utils.text_generation import summarize_simulation
 import argparse
-
-# Set default value for prompt_meta if not defined elsewhere
-prompt_meta = '### Instruction:\n{}\n### Response:'
+import random
 
 if __name__ == "__main__":
-
-    # Initialize global time and simulation variables
-    global_time = 0
-
-    log_locations = False
-    log_actions = True
-    log_plans = False
-    log_ratings = False
-    log_memories = False
-
-    print_locations = True
-    print_actions = True
-    print_plans = True
-    print_ratings = True
-    print_memories = False
 
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Run a dialog simulation.')
     parser.add_argument('--config_name', type=str, default='default', help='The descriptive name of the simulation configuration, e.g. "speed_date". It should have a corresponding folder under "config/".')
     parser.add_argument('--repeats', type=int, default=1, help='The number of times to repeat the simulation.')
-    parser.add_argument('--LM', type=str, default='gpt4', help='The language model to use for text generation.')
+    parser.add_argument('--LM', type=str, default='gpt-4', help='The language model to use for text generation.')
 
     args = parser.parse_args()
     config_name = args.config_name
     repeats = args.repeats
     LM = args.LM
 
-    # Start simulation loop
-    whole_simulation_output = ""
-
     # Load town areas and people from JSON file
     config_dir = f'config/{config_name}'
     general_config_frn = f"{config_dir}/general.json"
     with open(general_config_frn, 'r') as fr:
         general_config = json.load(fr)
-        town_areas = general_config['town_areas']
+        temperature = general_config['temperature']
+        scenario_description = general_config['scenario_description']
+        max_turns = general_config['max_turns_each_iteration']
     agents_config_frn = f"{config_dir}/agents.json"
     with open(agents_config_frn, 'r') as fr:
         town_people = json.load(fr)
 
-    # Create world_graph
-    world_graph = nx.Graph()
-    last_town_area = None
-    for town_area in town_areas.keys():
-        world_graph.add_node(town_area)
-        world_graph.add_edge(town_area, town_area)  # Add an edge to itself
-        if last_town_area is not None:
-            world_graph.add_edge(town_area, last_town_area)
-        last_town_area = town_area
-
-    # Add the edge between the first and the last town areas to complete the cycle
-    world_graph.add_edge(list(town_areas.keys())[0], last_town_area)
-
-    # Initialize agents and locations
+    # Initialize agents
+    male_agents = []
+    female_agents = []
     agents = []
-    locations = Locations()
-
-
+    log_dir = f'logs/{config_name}'
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    simulation_log = open(f'{log_dir}/simulation_log.txt', 'w')
+    agent_logs = {}
     for agent_name, agent_description in town_people.items():
-        agents.append(Agent(agent_name, agent_description, world_graph))
+        new_agent = Agent(LM, agent_name, agent_description)
+        agents.append(new_agent)
+        if new_agent.gender == "woman":
+            female_agents.append(new_agent)
+        elif new_agent.gender == "man":
+            male_agents.append(new_agent)
+        else:
+            raise ValueError(f"Unknown gender: {new_agent.gender}")
+        agent_logs[agent_name] = open(f'{log_dir}/{agent_name}_log.json', 'w')
 
-    for name, description in town_areas.items():
-        locations.add_location(name, description)
+    assert len(male_agents) == len(female_agents)
+    n_agents_each_side = len(female_agents)
+    # print("Female agents:")
+    # print(female_agents)
+    # print("Male agents:")
+    # print(male_agents)
 
+    # Start simulation loop
     for repeat in range(repeats):
-        #log_output for one repeat
-        log_output = ""
+        repeat_str = f"====================== REPEAT {repeat} ======================\n"
+        print(repeat_str)
+        simulation_log.write(repeat_str)
+        simulation_log.flush()
 
-        print(f"====================== REPEAT {repeat} ======================\n")
-        log_output += f"====================== REPEAT {repeat} ======================\n"
-        if log_locations:
-            log_output += f"=== LOCATIONS AT START OF REPEAT {repeat} ===\n"
-            log_output += str(locations) + "\n"
-            if print_locations:
-                print(f"=== LOCATIONS AT START OF REPEAT {repeat} ===")
-                print(str(locations) + "\n")
+        for iteration in range(n_agents_each_side): # A new iteration with new pairings
+            iteration_str = f"----------------------- ITERATION {iteration} -----------------------\n"
+            print(iteration_str)
+            simulation_log.write(iteration_str)
 
-        # Plan actions for each agent
-        for agent in agents:
-            agent.plan(global_time, prompt_meta)
-            if log_plans:
-                log_output += f"{agent.name} plans: {agent.plans}\n"
-                if print_plans:
-                    print(f"{agent.name} plans: {agent.plans}")
+            for male_agent, female_agent in zip(male_agents, female_agents):
+                # each pair of male and female agents has a conversation
+                paired_agents = [male_agent, female_agent]
 
-        # Execute planned actions and update memories
-        for agent in agents:
-            # Execute action
-            action = agent.execute_action(agents, locations.get_location(agent.location), global_time, town_areas, prompt_meta)
-            if log_actions:
-                log_output += f"{agent.name} action: {action}\n"
-                if print_actions:
-                    print(f"{agent.name} action: {action}")
+                # randomly choose a startng agent
+                start_idx = random.choice([0,1])
+                first_agent = paired_agents[start_idx]
+                second_agent = paired_agents[1-start_idx]
 
-            # Update memories
-            for other_agent in agents:
-                if other_agent != agent:
-                    memory = f'[Time: {global_time}. Person: {agent.name}. Memory: {action}]'
-                    other_agent.memories.append(memory)
-                    if log_memories:
-                        log_output += f"{other_agent.name} remembers: {memory}\n"
-                        if print_memories:
-                            print(f"{other_agent.name} remembers: {memory}")
+                first_agent_initial_msg = scenario_description.replace("[OPPOSITE_GENDER]", first_agent.opposite_gender)
+                second_agent_initial_msg = scenario_description.replace("[OPPOSITE_GENDER]", second_agent.opposite_gender)
 
-            # Compress and rate memories for each agent
-            for agent in agents:
-                agent.compress_memories(global_time)
-                agent.rate_memories(locations, global_time, prompt_meta)
-                if log_ratings:
-                    log_output += f"{agent.name} memory ratings: {agent.memory_ratings}\n"
-                    if print_ratings:
-                        print(f"{agent.name} memory ratings: {agent.memory_ratings}")
+                for turn in range(max_turns):
+                    first_agent.converse(incoming_message, partner_name, instructions, max_tokens=512, temperature=0.5)
 
-        # Rate locations and determine where agents will go next
-        for agent in agents:
-            place_ratings = agent.rate_locations(locations, global_time, prompt_meta)
-            if log_ratings:
-                log_output += f"=== UPDATED LOCATION RATINGS {global_time} FOR {agent.name}===\n"
-                log_output += f"{agent.name} location ratings: {place_ratings}\n"
-                if print_ratings:
-                    print(f"=== UPDATED LOCATION RATINGS {global_time} FOR {agent.name}===\n")
-                    print(f"{agent.name} location ratings: {place_ratings}\n")
 
-            old_location = agent.location
 
-            new_location_name = place_ratings[0][0]
-            agent.move(new_location_name)
 
-            if print_locations:
-                log_output += f"=== UPDATED LOCATIONS AT TIME {global_time} FOR {agent.name}===\n"
-                log_output += f"{agent.name} moved from {old_location} to {new_location_name}\n"
-            if print_ratings:
-                print(f"=== UPDATED LOCATIONS AT TIME {global_time} FOR {agent.name}===\n")
-                print(f"{agent.name} moved from {old_location} to {new_location_name}\n")
+
+            # shift male_agents by one position to their right
+            male_agents = male_agents[-1:] + male_agents[:-1]
 
         print(f"----------------------- SUMMARY FOR REPEAT {repeat} -----------------------")
 
-        print(summarize_simulation(log_output=log_output))
 
-        whole_simulation_output += log_output
+    # close log files
+    simulation_log.close()
+    for agent in agents:
+        agent_logs[agent.name].close()
 
-        # Increment time
-        global_time += 1
-
-    # Write log output to file
-    log_dir = 'logs'
-    with open(f'{log_dir}/simulation_log.txt', 'w') as f:
-        f.write(whole_simulation_output)

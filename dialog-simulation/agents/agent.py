@@ -50,7 +50,7 @@ class Agent:
         Converse with another agent given the conversation context so far.
     """
      
-    def __init__(self, LM, name, description, world_graph):
+    def __init__(self, LM, name, description):
         self.LM = LM
         self.name = name
         self.first_name = name.split()[0]
@@ -64,13 +64,19 @@ class Agent:
         self.favorite_pnw_hiking_trail = description["favorite_pnw_hiking_trail"]
         self.hobbies = description["hobbies"]
         self.pronouns = description["pronouns"]
+        if "she/" in self.pronouns:
+            self.gender = "woman"
+            self.opposite_gender = "man"
+        elif "he/" in self.pronouns:
+            self.gender = "man"
+            self.opposite_gender = "woman"
+
         self.location = description["starting_location"]
         self.identity_prompt = self.initialize_identity()
         self.memory_ratings = []
         self.memories = []
         self.memory_token_limit = LM_MAX_TOKENS_DICT[self.LM]
         self.compressed_memories = []
-        self.world_graph = world_graph
 
     def __repr__(self):
         return f"Agent({self.name}, {self.location})"
