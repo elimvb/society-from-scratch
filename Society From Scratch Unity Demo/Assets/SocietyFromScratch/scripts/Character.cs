@@ -10,7 +10,15 @@ public class Character : MonoBehaviour
     SpeechBubble bubble;
 
     void Awake(){
-        bubble = GetComponentsInChildren<SpeechBubble>()[0];
+        SpeechBubble[] bubbles = GetComponentsInChildren<SpeechBubble>();
+        if (bubbles.Length > 0)
+        {
+            bubble = bubbles[0];
+        }
+        else
+        {
+            Debug.LogWarning("No SpeechBubble components found in children!");
+        }
     }
 
     void Update()
