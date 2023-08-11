@@ -88,6 +88,8 @@ if __name__ == "__main__":
 
             # each pair of male and female agents has a conversation
             for male_agent, female_agent in zip(male_agents, female_agents):
+                if male_agent.first_name != "Ashley" or female_agent.first_name != "Emma":
+                    continue
                 log_and_print(simulation_log, f"\nPaired agents: {male_agent.name}, {female_agent.name}\n")
                 paired_agents = (male_agent, female_agent)
 
