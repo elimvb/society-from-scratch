@@ -20,6 +20,8 @@ public class LevelChanger : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space))
         {
             if (SceneManager.GetActiveScene().name == "Scene 1 - Generation") {
+                FadeToScene("Scene 1.5 - Emma");
+            } else if (SceneManager.GetActiveScene().name == "Scene 1.5 - Emma") {
                 FadeToScene("Scene 2 - Speed Dating");
             } else if (SceneManager.GetActiveScene().name == "Scene 2 - Speed Dating") {
                 FadeToScene("Scene 1 - Generation");
