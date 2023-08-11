@@ -9,6 +9,9 @@ EditorBuildSettings:
     path: Assets/SocietyFromScratch/Scenes/Scene 1 - Generation.unity
     guid: dbbe9112f34acd54abbe324a01be5361
   - enabled: 1
+    path: Assets/SocietyFromScratch/Scenes/Scene 15 - Emma Intro.unity
+    guid: 8eabd7d0ea7832e4892ed5f888fd69f7
+  - enabled: 1
     path: Assets/SocietyFromScratch/Scenes/Scene 2 - Speed Dating.unity
     guid: 18a0cacf89d423d43b45df0d6665ad7e
   m_configObjects: {}
