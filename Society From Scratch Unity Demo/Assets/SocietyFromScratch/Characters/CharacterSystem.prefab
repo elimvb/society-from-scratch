@@ -3712,7 +3712,7 @@ MonoBehaviour:
   maxPathLength: 40
   characterPrefab: {fileID: 6404575023276011821}
   parentObject: {fileID: 6386244057362599225}
-  numberOfCharacters: 500
+  numberOfCharacters: 50
 --- !u!1 &6386244056772262938
 GameObject:
   m_ObjectHideFlags: 0
