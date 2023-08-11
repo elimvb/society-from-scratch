@@ -96,7 +96,8 @@ if __name__ == "__main__":
                     partner_name = partner_agent.name
                     partner_profession = partner_agent.profession
                     partner_age = partner_agent.age
-                    new_pairing_prompt = f"Now, you are going to meet the {iteration_ordinal} {agent.opposite_gender}, {partner_name} ({partner_age} years old), {partner_profession}. "
+                    new_pairing_prompt = f"Now, you are going to meet the {iteration_ordinal} {agent.opposite_gender}, {partner_name} ({partner_age} years old), {partner_profession}.\n"
+                    log_and_print(simulation_log, new_pairing_prompt)
                     new_memory = {"role": "user", "content": new_pairing_prompt}
                     agent.add_to_memory(new_memory)
 

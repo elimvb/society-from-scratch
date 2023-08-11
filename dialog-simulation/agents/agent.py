@@ -50,8 +50,10 @@ class Agent:
         Converse with another agent given the conversation context so far.
     """
      
-    def __init__(self, LM, name, description):
+    def __init__(self, LM, api_key, org_id, name, description):
         self.LM = LM
+        self.api_key = api_key
+        self.org_id = org_id
         self.name = name
         self.first_name = name.split()[0]
         self.last_name = name.split()[1]
@@ -65,7 +67,11 @@ class Agent:
         self.favorite_pnw_hiking_trail = description["favorite_pnw_hiking_trail"]
         self.hobbies = description["hobbies"]
         self.pronouns = description["pronouns"]
-        self.things_hated = description["things_hated"]
+        if "things_hated" in description:
+            self.things_hated = description["things_hated"]
+        else:
+            self.things_hated = ""
+
         if "she/" in self.pronouns:
             self.gender = "woman"
             self.opposite_gender = "man"
@@ -91,9 +97,9 @@ class Agent:
         You star sign is {self.star_sign}. 
         You make {self.income} income. 
         You like to {self.hobbies}. 
-        Your favorite Pacific Northwest hiking trail is {self.favorite_pnw_hiking_trail}.
-        You hate {self.things_hated}.
-        '''
+        Your favorite Pacific Northwest hiking trail is {self.favorite_pnw_hiking_trail}.'''
+        if self.things_hated != "":
+            identity += f'\nYou hate {self.things_hated}.'
         return identity
 
     def converse(self, incoming_message, partner_name, instructions, max_tokens=512, temperature=0.5):
@@ -131,6 +137,8 @@ class Agent:
         message, n_tokens_used = generate(self.LM,
                                           system_prompt=self.identity_prompt,
                                           context=self.memories,
+                                          api_key=self.api_key,
+                                          org_id=self.org_id,
                                           max_tokens=max_tokens,
                                           temperature=temperature,
                                           use_openai=True)

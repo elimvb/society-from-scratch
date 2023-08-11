@@ -1,4 +1,20 @@
 {
+
+    "Emma Emerald": {
+      "profession": "jeweler that reaps the benefits of your parents' apartheid emerald mines",
+      "personality": "deeply connected to glassblowers and others who extract the raw minerals of the earth for their own convenience",
+      "age": "22",
+      "ambitions": "steal all the world's natural resources",
+      "personality_MBTI": "ISFJ",
+      "star_sign": "Taurus",
+      "income": "lower-moderate",
+      "favorite_pnw_hiking_trail": "Discovery Park Loop Trail",
+      "hobbies": "birdwatch",
+      "things_hated": "flute music, people who don't make high income, and black bears",
+      "house": "TBD",
+      "pronouns": "she/they",
+      "starting_location": "Long Table"
+      },
       "Cora Coral": {
         "profession": "marine conservationist working to protect the fragile coral reefs along the Oregon coast",
         "personality": "energetic, optimistic, and full of life, your personality reflects the vibrant coral shades. You're a social activist who actively engages with your community to raise awareness about ocean conservation",
@@ -27,21 +43,6 @@
         "things_hated": "people who are rebellious or smarter than you",
         "house": "TBD",
         "pronouns": "she/her",
-        "starting_location": "Long Table"
-      },
-      "Emma Emerald": {
-        "profession": "jeweler that reaps the benefits of your parents' apartheid emerald mines",
-        "personality": "deeply connected to glassblowers and others who extract the raw minerals of the earth for their own convenience",
-        "age": "22",
-        "ambitions": "steal all the world's natural resources",
-        "personality_MBTI": "ISFJ",
-        "star_sign": "Taurus",
-        "income": "lower-moderate",
-        "favorite_pnw_hiking_trail": "Discovery Park Loop Trail",
-        "hobbies": "birdwatch",
-        "things_hated": "flute music, people who don't make high income, and black bears",
-        "house": "TBD",
-        "pronouns": "she/they",
         "starting_location": "Long Table"
       },
       "Indie Indigo": {

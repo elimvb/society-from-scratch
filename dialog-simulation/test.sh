@@ -12,4 +12,10 @@ nohup python main.py --config_name 3bad-guys-1st-instruct-only-hate --repeats 1 
 
 nohup python main.py --config_name 3bad-guys-1st-instruct-only-hate --repeats 1 --LM gpt-4 --api_key_id CCB &
 
+nohup python main.py --config_name 3bad-guys-3bad-girls --repeats 1 --LM gpt-4 --api_key_id CCB &
+
+nohup python main.py --config_name 3bad-guys-3bad-girls-hate --repeats 1 --LM gpt-4 --api_key_id CCB &
+
+
+
 
