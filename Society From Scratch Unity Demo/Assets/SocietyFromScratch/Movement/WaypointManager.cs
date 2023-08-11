@@ -26,7 +26,7 @@ public class WaypointManager : MonoBehaviour
             }
             Transform sphereTransform = charInstance.transform.Find("Sphere");
             MeshRenderer meshRenderer = sphereTransform.GetComponent<MeshRenderer>();
-            Material rubberMaterial = meshRenderer.materials.FirstOrDefault(mat => mat.name.StartsWith("Rubber"));
+            Material rubberMaterial = meshRenderer.materials.FirstOrDefault(mat => mat.name.StartsWith("Character_Random_Mat"));
             Color randomColor = new Color(Random.value, Random.value, Random.value);
             rubberMaterial.SetColor("_Color", randomColor); // Randomize color
 
