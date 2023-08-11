@@ -21,13 +21,13 @@ public class Character : MonoBehaviour
         }
     }
 
-    void Update()
-    {
-        if(textIndex >= 0 && textIndex<texts.Length) {
-            bubble.SetText(texts[textIndex]);
-            bubble.Show(true);
-        } else {
-            bubble.Show(false);
-        }
-    }
+    // void Update()
+    // {
+    //     if(textIndex >= 0 && textIndex<texts.Length) {
+    //         bubble.SetText(texts[textIndex]);
+    //         bubble.Show(true);
+    //     } else {
+    //         bubble.Show(false);
+    //     }
+    // }
 }
