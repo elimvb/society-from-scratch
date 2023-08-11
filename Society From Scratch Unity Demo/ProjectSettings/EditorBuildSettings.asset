@@ -4,5 +4,8 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/SocietyFromScratch/Scene 1 - Generation.unity
+    guid: dbbe9112f34acd54abbe324a01be5361
   m_configObjects: {}

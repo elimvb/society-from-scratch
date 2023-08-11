@@ -159,7 +159,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _speed: 25
   _smoothing: 5
-  _range: {x: 30, y: 70}
+  _range: {x: 30, y: 100}
   _cameraHolder: {fileID: 2973754940739086085}
 --- !u!1 &2973754940739086086
 GameObject:

@@ -38,7 +38,7 @@ Material:
     - _Layout: 0
     - _Mapping: 1
     - _MirrorOnBack: 0
-    - _Rotation: 62.5
+    - _Rotation: 5
     m_Colors:
     - <noninit>: {r: 0, g: 9.004677e-35, b: 0, a: 9.0046403e-35}
     - _Tint: {r: 1, g: 1, b: 1, a: 1}
