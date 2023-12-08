@@ -216,9 +216,9 @@ def add_uvmap(
 
 
 def create_uv_map(object: bpy.types.Object, texture_size: int) -> None:
-    island_separation = 0.0005 / (texture_size / 512)
+    island_separation = 0.0001 / (texture_size / 512)
     # bake_padding = math.ceil(math.log(texture_size, 2) - 8)
-    logger.debug(f"ISLAND SEPARATION: {str(island_separation)}")
+    logger.debug("Island separation is " + str(island_separation))
 
     """
     # Smart-project target object's faces to create a new UV layout
@@ -233,14 +233,9 @@ def create_uv_map(object: bpy.types.Object, texture_size: int) -> None:
 
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
-
-    # Smart project method
-    bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=island_separation, area_weight=1.0)
-
-    # # Lightmap pack method
-    # bpy.ops.uv.lightmap_pack(PREF_CONTEXT='ALL_FACES', PREF_IMG_PX_SIZE=512, PREF_BOX_DIV=24, PREF_NEW_UVLAYER=False, PREF_MARGIN_DIV=0.10)
-
+    bpy.ops.uv.smart_project(angle_limit=math.radians(30), island_margin=island_separation, area_weight=1.0)
     bpy.ops.object.mode_set(mode="OBJECT")
+
     """
     # Box-project target objects' faces to create a new UV layout
     for object in objects:
@@ -729,6 +724,54 @@ def weld_vertices(vertex_selection: tuple = ("all"), distance_threshold: float =
     else:
         logger.debug("The active object is not a mesh")
 
+# def weld_vertices_b(vertex_selection: tuple = ("all"), distance_threshold: float = 0.001):
+#     # Get the active object
+#     obj = bpy.context.active_object
+
+#     # Make sure the active object is a mesh
+#     if obj.type == "MESH":
+#         # Get into edit mode (necessary to perform operations on the mesh)
+#         bpy.ops.object.mode_set(mode="EDIT")
+
+#         # Create a bmesh object and fill it with our mesh
+#         bm = bmesh.from_edit_mesh(obj.data)
+
+#         # Deselect all vertices to start from a clean slate
+#         bpy.ops.mesh.select_all(action="DESELECT")
+#         bm.select_flush(False)
+
+#         # Loop over the mesh edges
+#         for edge in bm.edges:
+#             # Select border vertices if specified
+#             if "border" in vertex_selection and len(edge.link_faces) == 1:
+#                 edge.verts[0].select = True
+#                 edge.verts[1].select = True
+#             # Select non-border vertices if specified
+#             elif "nonborder" in vertex_selection and len(edge.link_faces) > 1:
+#                 edge.verts[0].select = True
+#                 edge.verts[1].select = True
+
+#         # If all vertices are to be selected
+#         if "all" in vertex_selection:
+#             bpy.ops.mesh.select_all(action="SELECT")
+
+#         # Update the mesh to reflect the selection
+#         bmesh.update_edit_mesh(obj.data)
+
+#         # Weld the selected vertices that are within the distance threshold
+#         bmesh.ops.remove_doubles(
+#             bm, verts=[v for v in bm.verts if v.select], dist=distance_threshold
+#         )
+
+#         # Write our bmesh back to the original mesh
+#         bmesh.update_edit_mesh(obj.data)
+
+#         # Get back to object mode
+#         bpy.ops.object.mode_set(mode="OBJECT")
+#     else:
+#         logger.debug("The active object is not a mesh")
+
+
 def delete_everything():
     materials = bpy.data.materials
     # delete all the materials
@@ -811,11 +854,11 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
     obj = bpy.data.objects[0]
     bpy.context.view_layer.objects.active = obj
 
-    
-    logger.debug("PRE-BORDER WELD: " + str(len(obj.data.vertices)))
+    logger.debug("PRE-WELD: " + str(len(obj.data.vertices)))
     weld_vertices(vertex_selection=("border"), distance_threshold=0.0001)
-    logger.debug("POST-BORDER WELD: " + str(len(obj.data.vertices)))
-    weld_vertices(vertex_selection=("nonborder"), distance_threshold=0.001)
+    logger.debug("MID-WELD: " + str(len(obj.data.vertices)))
+    # weld_vertices(vertex_selection=("nonborder"), distance_threshold=0.001)
+    logger.debug("POST-WELD: " + str(len(obj.data.vertices)))
 
     bpy.ops.mesh.customdata_custom_splitnormals_clear()
     bpy.context.object.data.auto_smooth_angle = math.radians(180)
@@ -828,7 +871,7 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
     logger.debug("MESH IS MANIFOLD: " + str(manifold_mesh))
 
     # Rotate object into canonical rotation
-    # logger.debug(annotation_dict["pose_z_rot_angle"])
+    logger.debug(annotation_dict["pose_z_rot_angle"])
 
     bpy.context.object.rotation_mode = "XYZ"
     source_object.rotation_euler[2] += annotation_dict["pose_z_rot_angle"]
@@ -852,38 +895,171 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
     set_base_to_origin(source_object)
     bpy.ops.object.transform_apply()
 
+    logger.debug(source_object.dimensions)
+
     # check if target_poly_count is more than source_poly_count
     source_surface_area = find_surface_area(source_object)
-    logger.debug("TOTAL SURFACE AREA: " + str(source_surface_area))
+    logger.debug("TOTAL SURFACE AREA IS " + str(source_surface_area))
     # target_polygon_density = 6000/(source_surface_area + 0.0188133)
     # target_poly_count = source_surface_area * target_polygon_density
     min_local_poly_count = 100
     initial_poly_count = 5000
     additional_polys_per_square_meter = 150
     target_poly_count = initial_poly_count + additional_polys_per_square_meter * source_surface_area
-    logger.debug("TARGET POLY-COUNT: " + str(target_poly_count))
-    if source_surface_area > 5:
-        texture_size = 2048
-    elif source_surface_area > 1:
+    logger.debug("Target polycount is " + str(target_poly_count))
+    if source_surface_area > 1:
         texture_size = 1024
     else:
         texture_size = 512
     
-    # logger.debug("Contiguous elements consolidated. Creating target object")
+    logger.debug("Contiguous elements consolidated. Creating target object")
     # Duplicate source object to create target object
     bpy.ops.object.duplicate()
     target_object = bpy.context.selected_objects[0]
     bpy.ops.object.shade_smooth()
 
+    # This is needed whether or not decimation is necessary, so it'll go here
+    element_spacing_amount = 100
+
+    # weld_vertices(vertex_selection=("all"), distance_threshold=0.001)
+    logger.debug("WELD BEFORE PROPER DECIMATION: " + str(len(obj.data.vertices)))
     # DECIMATION PROCESS
 
     # Get polygon count
     source_poly_count = len(target_object.data.polygons)
-    logger.debug(f"POLYGON COUNT PRE-DECIMATION: {source_poly_count} (Target is {target_poly_count})")
+    logger.debug(f"Polygon count pre-decimation is {source_poly_count}")
 
     # Calculate whether decimating it to fulfill the calculated polygon density is necessary
     if source_poly_count > target_poly_count:
-        logger.debug(f"Poly-count limit exceeded. Now decimating...")
+        logger.debug(f"Poly-count too high! Now decimating!")
+
+        # If object exceeds maximum poly count, separate objects by continguous elements into long string, and remerge them
+        # (You have to reorganize source objects as well in order to maintain the proper alignment of source and target objects)
+        logger.debug(
+            "Separating source and target objects by contiguous elements, and stringing them out."
+        )
+        bpy.ops.object.select_all(action="DESELECT")
+        source_object.select_set(True)
+        bpy.context.view_layer.objects.active = source_object
+        source_object.name = "source_object"
+        bpy.ops.mesh.separate(type="LOOSE")
+        source_objects = bpy.context.selected_objects
+
+        logger.debug("The length of source_objects is " + str(len(source_objects)))
+        for i in range(0, len(source_objects)):
+            source_objects[i].name = "object_" + str(i).zfill(4) + "_source"
+            source_objects[i].location = (
+                element_spacing_amount * i,
+                element_spacing_amount * i,
+                element_spacing_amount * i,
+            )
+            source_objects[i].select_set(True)
+        bpy.context.view_layer.objects.active = bpy.context.selected_objects[0]
+        bpy.ops.object.join()
+        source_object = bpy.context.selected_objects[0]
+
+        bpy.ops.object.select_all(action="DESELECT")
+        target_object.select_set(True)
+        bpy.context.view_layer.objects.active = target_object
+        target_object.name = "target_object"
+        bpy.ops.mesh.separate(type="LOOSE")
+        target_objects = bpy.context.selected_objects
+
+        bpy.ops.object.select_all(action="DESELECT")
+        logger.debug("The length of target_objects is " + str(len(target_objects)))
+        for i in range(0, len(target_objects)):
+            target_objects[i].name = "object_" + str(i).zfill(4) + "_target"
+            target_objects[i].location = (
+                element_spacing_amount * i,
+                element_spacing_amount * i,
+                element_spacing_amount * i,
+            )
+            target_objects[i].select_set(True)
+        bpy.context.view_layer.objects.active = bpy.context.selected_objects[0]
+        bpy.ops.object.join()
+        target_object = bpy.context.selected_objects[0]
+
+        #R: I don't think I need this bit...
+        """
+        # Decimate object based on its surface area
+        bpy.ops.object.select_all(action="DESELECT")
+        target_objects.select_set(True)
+        bpy.context.view_layer.objects.active = target_object
+        """
+
+        #R: This is all junk
+        """
+        local_source_poly_count = len(target_object.data.polygons)
+        if min_local_poly_count < local_source_poly_count:
+            logger.debug(f"\nSTARTING DECIMATION of {target_object.name}")
+
+            local_surface_area = find_surface_area(target_object)
+            logger.debug(
+                "(1) "
+                + target_object.name
+                + "'s local source polycount is "
+                + str(local_source_poly_count)
+            )
+            local_target_poly_count = target_poly_count * (
+                local_surface_area / source_surface_area
+            )
+            logger.debug(
+                "(2) "
+                + target_object.name
+                + "'s local target polycount is "
+                + str(local_target_poly_count)
+                + " because it makes up the following fraction of the object's total surface area: "
+                + str(local_surface_area / source_surface_area)
+            )
+        """
+
+        #R: Skipping remesh process
+        """
+            # Remesh target object to uniformly distribute polygon density before decimation
+            closed_mesh = is_object_closed(target_object)
+            
+            # Method 1 - QUADRIFLOW REMESH
+            # Use this method if mesh is not closed
+            if not closed_mesh:
+                # Set parameters for remesh density
+                min_quadriflow_remesh_faces = 500
+                remesh_polygon_density = 10000
+
+                quadriflow_target_faces = max(
+                    min_quadriflow_remesh_faces,
+                    round(local_surface_area * remesh_polygon_density),
+                )
+                logger.debug(
+                    "(3) Attempting Quadriflow remesh of "
+                    + target_object.name
+                    + " using "
+                    + str(quadriflow_target_faces)
+                    + " faces"
+                )
+                bpy.ops.object.quadriflow_remesh(
+                    use_mesh_symmetry=False,
+                    use_preserve_boundary=True,
+                    smooth_normals=True,
+                    mode="FACES",
+                    target_faces=quadriflow_target_faces,
+                )
+
+            # Method 2 - VOXEL REMESH
+            # Check if Quadriflow remesh occurred, and whether it was successful
+            if closed_mesh or len(target_object.data.polygons) == local_source_poly_count:
+                logger.debug("(4) Running octree remesh of " + target_object.name)
+
+                bpy.ops.object.modifier_add(type="REMESH")
+                bpy.context.object.modifiers["Remesh"].mode = "SMOOTH"
+                bpy.context.object.modifiers["Remesh"].octree_depth = 8
+                bpy.context.object.modifiers["Remesh"].use_smooth_shade = True
+                bpy.ops.object.modifier_apply(modifier="Remesh")
+        """
+
+        decimation_iter_current = 0
+        decimation_iter_max = 1
+        # dec_min_local_poly_count = 200
+        # dec_local_target_poly_count = max(local_target_poly_count, dec_min_local_poly_count)
         
         #R: Sorry, Eli, this planar decimation junk is all but useless
         """
@@ -900,45 +1076,41 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
         bpy.context.object.modifiers[-1].name = dec_mod_name
         bpy.ops.object.modifier_apply(modifier=dec_mod_name)
         """
-
-        decimation_iter_current = 0
-        decimation_iter_max = 1
-
+        
         # ITERATIVE COLLAPSE DECIMATION
+        logger.debug(f"When starting, {target_poly_count} is the target_count, and {len(target_object.data.polygons)} is the current...")
         while (
             target_poly_count + 10 < len(target_object.data.polygons)
             and decimation_iter_current < decimation_iter_max
         ):
-            # # Find mesh's minimum decimation threshold, to determine whether extra weld is necessary
-            # bpy.ops.object.duplicate()
-            # dec_test_object = bpy.context.selected_objects[0]
-            # bpy.context.view_layer.objects.active = dec_test_object
+            logger.debug(f"DECIMATION LOOP {decimation_iter_current} for {target_object.name}")
 
-            # dec_mod_name = "Decimate_" + str(decimation_iter_current).zfill(4)
-            # bpy.ops.object.modifier_add(type="DECIMATE")
-            # bpy.context.object.modifiers[-1].name = dec_mod_name
-            # bpy.context.object.modifiers[dec_mod_name].ratio = 0
-            # bpy.context.object.modifiers[dec_mod_name].use_collapse_triangulate = True
-            # bpy.ops.object.modifier_apply(modifier=dec_mod_name)
-            # dec_min = len(dec_test_object.data.polygons)
-            # bpy.ops.object.delete()
-            # logger.debug(f"MINIMUM DECIMATION POLY-COUNT: {str(dec_min)}")
+            # IF YOU'RE GOING TO WELD BEFORE ITERATIVE DECIMATION, THEN DO IT HERE
+            # weld_vertices(vertex_selection=("nonborder"), distance_threshold=0.0001)
+            # bpy.ops.object.modifier_add(type='WELD')
+            # bpy.context.object.modifiers["Weld"].merge_threshold = 0.001
+            # bpy.context.object.modifiers["Weld"].mode = 'CONNECTED'
+            # bpy.ops.object.modifier_apply(modifier="Weld")
 
-            target_object.select_set(True)
-            bpy.context.view_layer.objects.active = target_object
-            
-            # FALLBACK A: Extra vertex-weld step, if necessary. Check if this mesh is a temperamental diva that won't decimate without a preemptive vertex-merge
-            # if (dec_min * 1.5 > target_poly_count):
-            #     logger.debug(f"Additional weld required. Pre: {str(len(target_object.data.vertices))}")
-            #     weld_vertices(vertex_selection=("nonborder"), distance_threshold=0.001)
-            #     logger.debug(f"Post: {str(len(target_object.data.vertices))}")
-
-            # Traditional decimation
             decimation_ratio = target_poly_count / len(
                 target_object.data.polygons
             )
 
-            logger.debug(f"{str(target_object.name)} DECIMATION RATIO: {str(target_poly_count)} / {str(len(target_object.data.polygons))} = {str(decimation_ratio)}")
+            logger.debug(
+                "(5) Pre-decimation local poly-count is "
+                + str(len(target_object.data.polygons))
+            )
+
+            logger.debug(
+                "(6) "
+                + str(target_object.name)
+                + "'s DECIMATION RATIO IS "
+                + str(target_poly_count)
+                + " divided by "
+                + str(len(target_object.data.polygons))
+                + ", which equals "
+                + str(decimation_ratio)
+            )
 
             dec_mod_name = "Decimate_" + str(decimation_iter_current).zfill(4)
             bpy.ops.object.modifier_add(type="DECIMATE")
@@ -946,35 +1118,53 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
             bpy.context.object.modifiers[dec_mod_name].ratio = decimation_ratio
             bpy.context.object.modifiers[dec_mod_name].use_collapse_triangulate = True
             bpy.ops.object.modifier_apply(modifier=dec_mod_name)
-            logger.debug(f"POST-DECIMATION POLY-COUNT: {str(len(target_object.data.polygons))}")
+            logger.debug(
+                "(7) Post-decimation poly-count is "
+                + str(len(target_object.data.polygons))
+            )
 
             decimation_iter_current += 1
     else:
-        logger.debug("Poly-count limit followed. Skipping decimation...")
-
+        logger.debug("No decimation necessary. Mesh is already low-poly enough!")
+    
     # Create UV map
     bpy.ops.object.select_all(action="DESELECT")
-    
     logger.debug("Creating new UV layout.")
     create_uv_map(target_object, texture_size)
+
     logger.debug("New UV layout complete.")
+    
+    """
+    # Duplicate and create final object, for later
+    bpy.ops.object.select_all(action="DESELECT")
+    target_object.select_set(True)
+    bpy.ops.object.duplicate()
+    # bpy.context.view_layer.objects.active = bpy.context.selected_objects[0]
+    # bpy.ops.object.join()
+    final_object = bpy.context.selected_objects[0]
+    final_object.name = object_name
+    """
 
-    # Separate objects by continguous elements into long string, and remerge them (Necessary for target-bake regardless of decimation)
-    # (You have to reorganize source objects as well in order to maintain the proper alignment of source and target objects)
-
-    logger.debug(
-        "Separating source and target objects by contiguous elements, and stringing them out."
-    )
-    element_spacing_amount = 10
-
+    # Space out and then merge source and target objects into one object apiece, for a single bake
+    """
     bpy.ops.object.select_all(action="DESELECT")
     source_object.select_set(True)
     bpy.context.view_layer.objects.active = source_object
-    source_object.name = "source_object"
     bpy.ops.mesh.separate(type="LOOSE")
     source_objects = bpy.context.selected_objects
 
-    logger.debug(f"SOURCE-OBJECTS LENGTH: {str(len(source_objects))}")
+    bpy.ops.object.select_all(action="DESELECT")
+    target_object.select_set(True)
+    bpy.context.view_layer.objects.active = target_object
+    bpy.ops.mesh.separate(type="LOOSE")
+    target_objects = bpy.context.selected_objects
+
+    element_spacing_amount = 0.2
+    logger.debug(
+        "Object decimated (if necessary) and final object created. Repositioning source and target objects, and joining them into one object apiece."
+    )
+    bpy.ops.object.select_all(action="DESELECT")
+    logger.debug("The length of source_objects is " + str(len(source_objects)))
     for i in range(0, len(source_objects)):
         source_objects[i].name = "object_" + str(i).zfill(4) + "_source"
         source_objects[i].location = (
@@ -984,18 +1174,11 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
         )
         source_objects[i].select_set(True)
     bpy.context.view_layer.objects.active = bpy.context.selected_objects[0]
-    bpy.ops.object.join()
+    # bpy.ops.object.join()
     source_object = bpy.context.selected_objects[0]
 
     bpy.ops.object.select_all(action="DESELECT")
-    target_object.select_set(True)
-    bpy.context.view_layer.objects.active = target_object
-    target_object.name = "target_object"
-    bpy.ops.mesh.separate(type="LOOSE")
-    target_objects = bpy.context.selected_objects
-
-    bpy.ops.object.select_all(action="DESELECT")
-    logger.debug(f"TARGET-OBJECTS LENGTH: {str(len(target_objects))}")
+    logger.debug("The length of target_objects is " + str(len(target_objects)))
     for i in range(0, len(target_objects)):
         target_objects[i].name = "object_" + str(i).zfill(4) + "_target"
         target_objects[i].location = (
@@ -1005,11 +1188,9 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
         )
         target_objects[i].select_set(True)
     bpy.context.view_layer.objects.active = bpy.context.selected_objects[0]
-    bpy.ops.object.join()
+    # bpy.ops.object.join()
     target_object = bpy.context.selected_objects[0]
-
-
-    # Space out and then merge source and target objects into one object apiece, for a single bake
+    """
     
     # START OF MIGRATION
     # MATERIAL CREATION
@@ -1095,11 +1276,10 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
     target_object.data.materials[0] = bake_mat
     # END OF MIGRATION
 
-
     logger.debug(
         "Source and target objects repositioned and joined. Running bake from source to target."
     )
-    logger.debug(f"ATLAS TEXTURE SIZE: {str(texture_size)} x {str(texture_size)}")
+    logger.debug("ATLAS TEXTURE SIZE is " + str(texture_size) + " x " + str(texture_size))
     # Set up baking parameters
     bpy.ops.object.select_all(action="DESELECT")
     source_object.select_set(True)
@@ -1111,7 +1291,7 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
     bpy.context.scene.render.bake.use_pass_indirect = False
     bpy.context.scene.render.bake.use_selected_to_active = True
     bpy.context.scene.render.bake.cage_extrusion = 0.01 * annotation_dict["scale"] + 0.01
-    logger.debug("CAGE EXTRUSION: " + str(0.02 * annotation_dict["scale"] + 0.01) )
+    logger.debug(str(0.02 * annotation_dict["scale"] + 0.01) + " is the cage extrusion")
     bpy.context.scene.render.bake.margin = texture_size
 
     # Execute source-to-target object bake
@@ -1163,138 +1343,140 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
     picklegz_save_path = get_picklegz_save_path(output_dir, object_name)
     
     # Okay, original shit here: de-string decimated and baked asset (and source, for reference)
-    bpy.ops.object.select_all(action="DESELECT")
-    source_object.select_set(True)
-    bpy.context.view_layer.objects.active = source_object
-    bpy.ops.mesh.separate(type="LOOSE")
-    source_objects = bpy.context.selected_objects
+    if source_poly_count > target_poly_count:
+        bpy.ops.object.select_all(action="DESELECT")
+        source_object.select_set(True)
+        bpy.context.view_layer.objects.active = source_object
+        bpy.ops.mesh.separate(type="LOOSE")
+        source_objects = bpy.context.selected_objects
 
-    bpy.ops.object.select_all(action="DESELECT")
-    for i in range(0, len(source_objects)):
-        source_objects[i].name = "object_" + str(i).zfill(4) + "_source"
-        source_objects[i].location = (
-            element_spacing_amount * -i,
-            element_spacing_amount * -i,
-            element_spacing_amount * -i,
+        bpy.ops.object.select_all(action="DESELECT")
+        for i in range(0, len(source_objects)):
+            source_objects[i].name = "object_" + str(i).zfill(4) + "_source"
+            source_objects[i].location = (
+                element_spacing_amount * -i,
+                element_spacing_amount * -i,
+                element_spacing_amount * -i,
+            )
+            source_objects[i].select_set(True)
+        bpy.context.view_layer.objects.active = bpy.context.selected_objects[0]
+        bpy.ops.object.join()
+        source_object = bpy.context.selected_objects[0]
+
+        bpy.ops.object.select_all(action="DESELECT")
+        target_object.select_set(True)
+        bpy.context.view_layer.objects.active = target_object
+        bpy.ops.mesh.separate(type="LOOSE")
+        target_objects = bpy.context.selected_objects
+
+        bpy.ops.object.select_all(action="DESELECT")
+        for i in range(0, len(target_objects)):
+            target_objects[i].name = "object_" + str(i).zfill(4) + "_target"
+            target_objects[i].location = (
+                element_spacing_amount * -i,
+                element_spacing_amount * -i,
+                element_spacing_amount * -i,
+            )
+            target_objects[i].select_set(True)
+        bpy.context.view_layer.objects.active = bpy.context.selected_objects[0]
+        bpy.ops.object.join()
+        target_object = bpy.context.selected_objects[0]
+        target_object.name = "target_object"
+
+    """
+    final_object.select_set(True)
+    bpy.context.view_layer.objects.active = final_object
+
+    polygons = final_object.data.polygons
+    polygons.foreach_set("use_smooth", [True] * len(polygons))
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.mesh.mark_sharp(clear=True)
+    # Correct normals (Not necessary)
+    # bpy.ops.mesh.normals_make_consistent(inside=False)
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+    # Triangulate object
+    bpy.ops.object.modifier_add(type="TRIANGULATE")
+    bpy.ops.object.modifier_apply(modifier="Triangulate")
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_mode(type="FACE")
+
+    # Select all faces (Necessary for correct face normal direction, for some reason)
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.object.mode_set(mode="OBJECT")
+    """
+
+
+    """
+    # correct for json export, which causes a rotation of -90 degrees around the x-axis in Unity and a x-axis flip
+    mirror_object(final_object)
+
+    if save_obj:
+        obj_filename = os.path.join(output_dir, f"{object_name}.obj")
+        blend_file_path = bpy.data.filepath
+        obj_materials = False
+        bpy.ops.export_scene.obj(
+            filepath=obj_filename,
+            check_existing=True,
+            axis_forward="-Z",
+            axis_up="Y",
+            filter_glob="*.obj;*.mtl",
+            use_selection=False,
+            use_animation=False,
+            use_mesh_modifiers=True,
+            use_edges=True,
+            use_smooth_groups=False,
+            use_smooth_groups_bitflags=False,
+            use_normals=True,
+            use_uvs=True,
+            use_materials=obj_materials,
+            use_triangles=True,
+            use_nurbs=False,
+            use_vertex_groups=False,
+            use_blen_objects=True,
+            group_by_object=False,
+            group_by_material=False,
+            keep_vertex_order=False,
+            global_scale=1,
+            path_mode="AUTO",
         )
-        source_objects[i].select_set(True)
-    bpy.context.view_layer.objects.active = bpy.context.selected_objects[0]
-    bpy.ops.object.join()
-    source_object = bpy.context.selected_objects[0]
 
-    bpy.ops.object.select_all(action="DESELECT")
-    target_object.select_set(True)
-    bpy.context.view_layer.objects.active = target_object
-    bpy.ops.mesh.separate(type="LOOSE")
-    target_objects = bpy.context.selected_objects
+    rotate_for_unity(final_object, export=True)
 
-    bpy.ops.object.select_all(action="DESELECT")
-    for i in range(0, len(target_objects)):
-        target_objects[i].name = "object_" + str(i).zfill(4) + "_target"
-        target_objects[i].location = (
-            element_spacing_amount * -i,
-            element_spacing_amount * -i,
-            element_spacing_amount * -i,
+    visibility_points = get_visibility_points(final_object, visualize=True)
+
+    if not save_as_json:
+        save_pickle_gzip(
+            asset_name=object_name,
+            save_path=picklegz_save_path,
+            visibility_points=visibility_points,
+            albedo_path=albedo_path,
+            normal_path=normal_path,
+            emission_path=emission_path,
+            receptacle=receptacle,
         )
-        target_objects[i].select_set(True)
-    bpy.context.view_layer.objects.active = bpy.context.selected_objects[0]
-    bpy.ops.object.join()
-    target_object = bpy.context.selected_objects[0]
-    target_object.name = "target_object"
+    else:
+        save_json(
+            asset_name=object_name,
+            save_path=json_save_path,
+            visibility_points=visibility_points,
+            albedo_path=albedo_path,
+            normal_path=normal_path,
+            emission_path=emission_path,
+            receptacle=receptacle,
+        )
 
-#     """
-#     final_object.select_set(True)
-#     bpy.context.view_layer.objects.active = final_object
+    # Re-orient object post-export, for visual feedback
+    mirror_object(final_object)
+    rotate_for_unity(final_object, export=False)
+    bpy.ops.object.select_all(action="DESELECT")
 
-#     polygons = final_object.data.polygons
-#     polygons.foreach_set("use_smooth", [True] * len(polygons))
-#     bpy.ops.object.mode_set(mode="EDIT")
-#     bpy.ops.mesh.select_all(action="SELECT")
-#     bpy.ops.mesh.mark_sharp(clear=True)
-#     # Correct normals (Not necessary)
-#     # bpy.ops.mesh.normals_make_consistent(inside=False)
-#     bpy.ops.object.mode_set(mode="OBJECT")
-
-#     # Triangulate object
-#     bpy.ops.object.modifier_add(type="TRIANGULATE")
-#     bpy.ops.object.modifier_apply(modifier="Triangulate")
-#     bpy.ops.object.mode_set(mode="EDIT")
-#     bpy.ops.mesh.select_mode(type="FACE")
-
-#     # Select all faces (Necessary for correct face normal direction, for some reason)
-#     bpy.ops.mesh.select_all(action="SELECT")
-#     bpy.ops.object.mode_set(mode="OBJECT")
-#     """
-    
-#     """
-#     # correct for json export, which causes a rotation of -90 degrees around the x-axis in Unity and a x-axis flip
-#     mirror_object(final_object)
-
-#     if save_obj:
-#         obj_filename = os.path.join(output_dir, f"{object_name}.obj")
-#         blend_file_path = bpy.data.filepath
-#         obj_materials = False
-#         bpy.ops.export_scene.obj(
-#             filepath=obj_filename,
-#             check_existing=True,
-#             axis_forward="-Z",
-#             axis_up="Y",
-#             filter_glob="*.obj;*.mtl",
-#             use_selection=False,
-#             use_animation=False,
-#             use_mesh_modifiers=True,
-#             use_edges=True,
-#             use_smooth_groups=False,
-#             use_smooth_groups_bitflags=False,
-#             use_normals=True,
-#             use_uvs=True,
-#             use_materials=obj_materials,
-#             use_triangles=True,
-#             use_nurbs=False,
-#             use_vertex_groups=False,
-#             use_blen_objects=True,
-#             group_by_object=False,
-#             group_by_material=False,
-#             keep_vertex_order=False,
-#             global_scale=1,
-#             path_mode="AUTO",
-#         )
-
-#     rotate_for_unity(final_object, export=True)
-
-#     visibility_points = get_visibility_points(final_object, visualize=True)
-
-#     if not save_as_json:
-#         save_pickle_gzip(
-#             asset_name=object_name,
-#             save_path=picklegz_save_path,
-#             visibility_points=visibility_points,
-#             albedo_path=albedo_path,
-#             normal_path=normal_path,
-#             emission_path=emission_path,
-#             receptacle=receptacle,
-#         )
-#     else:
-#         save_json(
-#             asset_name=object_name,
-#             save_path=json_save_path,
-#             visibility_points=visibility_points,
-#             albedo_path=albedo_path,
-#             normal_path=normal_path,
-#             emission_path=emission_path,
-#             receptacle=receptacle,
-#         )
-
-#     # Re-orient object post-export, for visual feedback
-#     mirror_object(final_object)
-#     rotate_for_unity(final_object, export=False)
-#     bpy.ops.object.select_all(action="DESELECT")
-
-#     bpy.data.objects["vis_points"].select_set(True)
-#     vispoints = bpy.context.selected_objects[0]
-#     mirror_object(vispoints)
-#     rotate_for_unity(vispoints, export=False)
-#     """
+    bpy.data.objects["vis_points"].select_set(True)
+    vispoints = bpy.context.selected_objects[0]
+    mirror_object(vispoints)
+    rotate_for_unity(vispoints, export=False)
+"""
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format=FORMAT)
