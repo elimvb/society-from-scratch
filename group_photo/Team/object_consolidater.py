@@ -216,7 +216,7 @@ def add_uvmap(
 
 
 def create_uv_map(object: bpy.types.Object, texture_size: int) -> None:
-    island_separation = 0.0001 / (texture_size / 512)
+    island_separation = 0.0005 / (texture_size / 512)
     # bake_padding = math.ceil(math.log(texture_size, 2) - 8)
     logger.debug(f"ISLAND SEPARATION: {str(island_separation)}")
 
@@ -233,9 +233,14 @@ def create_uv_map(object: bpy.types.Object, texture_size: int) -> None:
 
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action="SELECT")
-    bpy.ops.uv.smart_project(angle_limit=math.radians(30), island_margin=island_separation, area_weight=1.0)
-    bpy.ops.object.mode_set(mode="OBJECT")
 
+    # Smart project method
+    bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=island_separation, area_weight=1.0)
+
+    # # Lightmap pack method
+    # bpy.ops.uv.lightmap_pack(PREF_CONTEXT='ALL_FACES', PREF_IMG_PX_SIZE=512, PREF_BOX_DIV=24, PREF_NEW_UVLAYER=False, PREF_MARGIN_DIV=0.10)
+
+    bpy.ops.object.mode_set(mode="OBJECT")
     """
     # Box-project target objects' faces to create a new UV layout
     for object in objects:
@@ -857,7 +862,9 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
     additional_polys_per_square_meter = 150
     target_poly_count = initial_poly_count + additional_polys_per_square_meter * source_surface_area
     logger.debug("TARGET POLY-COUNT: " + str(target_poly_count))
-    if source_surface_area > 1:
+    if source_surface_area > 5:
+        texture_size = 2048
+    elif source_surface_area > 1:
         texture_size = 1024
     else:
         texture_size = 512
@@ -944,14 +951,21 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
             decimation_iter_current += 1
     else:
         logger.debug("Poly-count limit followed. Skipping decimation...")
+
+    # Create UV map
+    bpy.ops.object.select_all(action="DESELECT")
     
+    logger.debug("Creating new UV layout.")
+    create_uv_map(target_object, texture_size)
+    logger.debug("New UV layout complete.")
+
     # Separate objects by continguous elements into long string, and remerge them (Necessary for target-bake regardless of decimation)
     # (You have to reorganize source objects as well in order to maintain the proper alignment of source and target objects)
 
     logger.debug(
         "Separating source and target objects by contiguous elements, and stringing them out."
     )
-    element_spacing_amount = 100
+    element_spacing_amount = 10
 
     bpy.ops.object.select_all(action="DESELECT")
     source_object.select_set(True)
@@ -993,13 +1007,7 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
     bpy.context.view_layer.objects.active = bpy.context.selected_objects[0]
     bpy.ops.object.join()
     target_object = bpy.context.selected_objects[0]
-    
-    # Create UV map
-    bpy.ops.object.select_all(action="DESELECT")
-    
-    logger.debug("Creating new UV layout.")
-    create_uv_map(target_object, texture_size)
-    logger.debug("New UV layout complete.")
+
 
     # Space out and then merge source and target objects into one object apiece, for a single bake
     
@@ -1086,6 +1094,7 @@ def glb_to_thor(object_path, output_dir, engine, annotations, save_obj, save_as_
     bpy.ops.object.material_slot_add()
     target_object.data.materials[0] = bake_mat
     # END OF MIGRATION
+
 
     logger.debug(
         "Source and target objects repositioned and joined. Running bake from source to target."
